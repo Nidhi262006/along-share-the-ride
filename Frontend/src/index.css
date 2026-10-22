@@ -1,0 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@500;600;700&display=swap');
+@import "leaflet/dist/leaflet.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+body { @apply bg-cream text-ink font-body; margin: 0; }
+button, input { font: inherit; }
+button { cursor: pointer; }
+
+/* hero banner overlay used on Home's mountain header */
+.hero-overlay {
+  background:
+    linear-gradient(180deg, rgba(34, 24, 40, 0.5), rgba(34, 24, 40, 0.92)),
+    linear-gradient(120deg, #3b2f47, #221828 60%);
+}
+
+/* reusable tag pill (Verified Driver, Student Friendly, etc.) */
+.tag-pill {
+  @apply text-[10px] font-medium px-2 py-0.5 rounded-[8px];
+}
+
+/* thin card border used across light-mode content cards */
+.card-base {
+  @apply bg-card border border-cardBorder rounded-[14px];
+}
+
+/* dark card variant used in sidebar-adjacent panels (chat, notifications, wallet) */
+.plum-card-base {
+  @apply bg-plumCard border border-plumBorder rounded-[14px] text-plumText;
+}
