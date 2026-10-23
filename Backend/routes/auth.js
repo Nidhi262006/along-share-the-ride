@@ -43,7 +43,7 @@ function setSessionCookie(res, user) {
   res.cookie(TOKEN_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     path: "/",
     maxAge: SESSION_DURATION_MS,
   });
