@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { ArrowDownUp, Calendar, Leaf, LocateFixed, MapPin, SlidersHorizontal } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import RideResultCard from "../components/dashboard/RideResultCard.jsx";
 import RealMap from "../components/RealMap.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getCurrentLocation, searchLocation } from "../services/locationService.js";
 import { createBooking, searchRideMatches } from "../services/rideService.js";
 import { parseRideRequest } from "../services/assistantService.js";
+import { formatPlace } from "../utils/display.js";
 
 function departureLabel(value) {
   return new Date(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
@@ -148,7 +149,7 @@ export default function FindRide() {
       setPickupPoint(null);
       setDestinationPoint(null);
       setAssistantContext(null);
-      setAssistantMessage("I found the search details. Review them below; the rides and availability come from RouteMate search.");
+      setAssistantMessage("Search details are ready. Review them below.");
       await loadRides(nextForm, result.request.seats, {}, result.request.sort);
     } catch (requestError) {
       setAssistantMessage(`${requestError.message}. You can continue with the normal search form.`);
@@ -196,10 +197,10 @@ export default function FindRide() {
   return (
     <div className="min-h-full bg-[#fbf9fd] pb-14">
       <section className="mx-auto max-w-[1320px] px-4 pb-6 pt-8 sm:px-6 lg:px-8 lg:pt-10">
-        <p className="along-kicker">A seat with your name on it</p>
+        <p className="along-kicker">Available rides</p>
         <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-          <div><h1 className="along-title text-3xl sm:text-4xl">Find your next ride.</h1><p className="mt-2 text-sm text-[#8a8498]">A better way to get where you&apos;re going in {cityLabel}.</p></div>
-          <span className="rounded-full border border-[#e7e0ed] px-3 py-1.5 text-[11px] text-[#8a8498]">Live RouteMate rides</span>
+          <div><h1 className="along-title text-3xl sm:text-4xl">Find a ride</h1><p className="mt-2 text-sm text-[#8a8498]">Search upcoming rides in {cityLabel}.</p></div>
+          <span className="rounded-full border border-[#e7e0ed] px-3 py-1.5 text-[11px] text-[#8a8498]">Available rides</span>
         </div>
         {!user?.serviceCity && <p role="status" className="mt-3 text-sm text-[#6f687c]">Select your service city from the account menu before searching for rides.</p>}
       </section>
@@ -207,8 +208,7 @@ export default function FindRide() {
       <div className="mx-auto grid max-w-[1320px] items-start gap-8 px-4 sm:px-6 lg:grid-cols-[268px_minmax(0,1fr)] lg:px-8">
         <aside className="space-y-5 lg:sticky lg:top-24">
           <section className="rounded-[20px] border-r border-[#e7e0ed] bg-transparent p-0 lg:rounded-none lg:border-r lg:pr-7">
-            <div className="mb-4 flex items-center gap-2 text-sm font-medium text-[#514665]"><SlidersHorizontal size={17} /> Make it your kind of ride</div>
-            <p className="mb-4 text-xs leading-5 text-[#8a8498]">A few little things that make<br className="hidden lg:block" /> a big difference.</p>
+            <div className="mb-4 flex items-center gap-2 text-sm font-medium text-[#514665]"><SlidersHorizontal size={17} /> Filter rides</div>
             <div className="grid grid-cols-3 gap-2 lg:grid-cols-1">
               {[
                 { value: "departure", label: "Earliest departure" },
@@ -232,8 +232,8 @@ export default function FindRide() {
 
           <div className="rounded-[18px] bg-[#f4f0f8] p-4">
             <Leaf size={21} className="text-[#81788f]" />
-            <h2 className="mt-3 font-display text-xl text-[#241c33]">One road.<br /><span className="italic">Smaller footprint.</span></h2>
-            <p className="mt-2 text-xs leading-5 text-[#81788f]">Sharing a ride means fewer cars on the road. A small choice that goes a long way.</p>
+            <h2 className="mt-3 font-display text-xl text-[#241c33]">Why share rides?</h2>
+            <p className="mt-2 text-xs leading-5 text-[#81788f]">Shared rides can reduce the number of cars on the road.</p>
           </div>
         </aside>
 
@@ -271,7 +271,7 @@ export default function FindRide() {
 
           <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-[#241c33]">{loading ? "Finding rides..." : `${rides.length} ${rides.length === 1 ? "ride" : "rides"} · ${form.pickup && form.destination ? `${form.pickup} → ${form.destination}` : `Available in ${cityLabel}`}`}</h2>
+              <h2 title={form.pickup && form.destination ? `${form.pickup} → ${form.destination}` : undefined} className="text-sm font-semibold text-[#241c33]">{loading ? "Finding rides..." : `${rides.length} ${rides.length === 1 ? "ride" : "rides"} · ${form.pickup && form.destination ? `${formatPlace(form.pickup)} → ${formatPlace(form.destination)}` : `Available in ${cityLabel}`}`}</h2>
               <p className="mt-1 text-xs text-[#8a8498]">{form.departureTime ? new Date(form.departureTime).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }) : "Choose a route and departure time"}</p>
             </div>
             <label className="flex items-center gap-2 text-xs text-[#8a8498]"><ArrowDownUp size={14} />
@@ -287,7 +287,16 @@ export default function FindRide() {
           {error && <p role="alert" className="mb-3 rounded-xl bg-coral/10 px-3 py-2 text-sm text-coral">{error}</p>}
 
           <div className="space-y-3">
-            {!loading && !error && matching?.available !== false && rides.length === 0 && <div className="rounded-2xl bg-[#f4f0f8] px-5 py-10 text-center text-sm text-[#8a8498]">No available rides match your search in {cityLabel}. Try a different date or route.</div>}
+            {!loading && !error && matching?.available !== false && rides.length === 0 && (
+              <div className="rounded-2xl bg-[#f4f0f8] px-5 py-8 text-center">
+                <p className="text-sm text-[#6f687c]">No rides match this route and departure time in {cityLabel}.</p>
+                {form.pickup.trim() && form.destination.trim() && <Link
+                  to="/ride-request"
+                  state={{ search: { pickup: form.pickup, destination: form.destination, departureTime: form.departureTime, seats: requestedSeats } }}
+                  className="along-button mt-4 inline-flex rounded-xl px-4 py-2.5 text-xs"
+                >Request this ride</Link>}
+              </div>
+            )}
             {rides.map((ride) => (
               <RideResultCard
                 key={ride._id}
@@ -301,11 +310,11 @@ export default function FindRide() {
           {selectedRide && (
             <section className="mt-4 rounded-[20px] border border-[#e7e0ed] bg-white p-5" aria-label="Selected ride details">
               <p className="along-kicker">Ride details</p>
-              <h3 className="mt-2 text-base font-semibold text-[#241c33]">{selectedRide.pickup.address} → {selectedRide.destination.address}</h3>
+              <h3 title={`${selectedRide.pickup.address} → ${selectedRide.destination.address}`} className="mt-2 line-clamp-2 text-base font-semibold text-[#241c33]">{formatPlace(selectedRide.pickup.address)} → {formatPlace(selectedRide.destination.address)}</h3>
               {selectedRideIsOwn && <p className="mt-2 text-sm text-coral">You can&apos;t book your own ride.</p>}
-              <p className="mt-2 text-xs text-[#6f687c]">Pickup: {pickupPoint?.name || selectedRide.pickup.address}</p>
-              <p className="mt-1 text-xs text-[#6f687c]">Drop-off: {destinationPoint?.name || selectedRide.destination.address}</p>
-              {selectedRide.stops?.length > 0 && <p className="mt-1 text-xs text-[#6f687c]">Driver stops: {[...selectedRide.stops].sort((first, second) => first.order - second.order).map((stop) => stop.address).join(" → ")}</p>}
+              <p title={pickupPoint?.name || selectedRide.pickup.address} className="mt-2 text-xs text-[#6f687c]">Pickup: {formatPlace(pickupPoint?.name || selectedRide.pickup.address)}</p>
+              <p title={destinationPoint?.name || selectedRide.destination.address} className="mt-1 text-xs text-[#6f687c]">Drop-off: {formatPlace(destinationPoint?.name || selectedRide.destination.address)}</p>
+              {selectedRide.stops?.length > 0 && <p title={[...selectedRide.stops].sort((first, second) => first.order - second.order).map((stop) => stop.address).join(" → ")} className="mt-1 line-clamp-2 text-xs text-[#6f687c]">Driver stops: {[...selectedRide.stops].sort((first, second) => first.order - second.order).map((stop) => formatPlace(stop.address)).join(" → ")}</p>}
               <p className="mt-1 text-xs text-[#6f687c]">{departureLabel(selectedRide.departureTime)} · {selectedRide.seatsAvailable} seats remaining</p>
               {selectedRide.routeMatch && <p className="mt-1 text-xs text-[#6f687c]">OSRM estimated detour: {(selectedRide.routeMatch.detourSeconds / 60).toFixed(1)} min · Combined endpoint map distance from route: {selectedRide.routeMatch.routeDeviationMeters} m</p>}
               {selectedRide.instructions && <p className="mt-2 text-xs text-[#6f687c]">Driver instructions: {selectedRide.instructions}</p>}
@@ -318,7 +327,7 @@ export default function FindRide() {
               </div>
             </section>
           )}
-          {selectedRide && <div className="mt-5 h-72 overflow-hidden rounded-[20px]"><RealMap city={user?.serviceCity} pickupLocation={mapLocation(selectedRide.pickup)} destinationLocation={mapLocation(selectedRide.destination)} /></div>}
+          {selectedRide && <div className="mt-5 h-[320px] overflow-hidden rounded-[20px]"><RealMap city={user?.serviceCity} pickupLocation={mapLocation(selectedRide.pickup)} destinationLocation={mapLocation(selectedRide.destination)} /></div>}
         </main>
       </div>
     </div>

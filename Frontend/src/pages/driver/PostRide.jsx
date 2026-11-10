@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, MapPin } from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { searchLocation } from "../../services/locationService.js";
-import { createRide, listDriverRides, updateRide } from "../../services/rideService.js";
+import { acceptRideRequest, createRide, listDriverRides, updateRide } from "../../services/rideService.js";
 
 function localDateTime(value) {
   const date = value ? new Date(value) : new Date(Date.now() + 60 * 60 * 1000);
@@ -14,9 +14,19 @@ function localDateTime(value) {
 export default function PostRide() {
   const { rideId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const cityLabel = user?.serviceCity === "bengaluru" ? "Bengaluru" : "Nagpur";
-  const [form, setForm] = useState({ pickupAddress: "", destinationAddress: "", stops: [], departureTime: localDateTime(), seats: 1, fare: "", instructions: "" });
+  const requestDraft = location.state?.rideRequest;
+  const [form, setForm] = useState({
+    pickupAddress: requestDraft?.pickupAddress || "",
+    destinationAddress: requestDraft?.destinationAddress || "",
+    stops: [],
+    departureTime: localDateTime(requestDraft?.departureTime),
+    seats: requestDraft?.seats || 1,
+    fare: requestDraft?.fare ?? "",
+    instructions: requestDraft?.instructions || "",
+  });
   const [loading, setLoading] = useState(Boolean(rideId));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -76,7 +86,16 @@ export default function PostRide() {
         await updateRide(rideId, ride);
         setNotice("Ride updated successfully.");
       } else {
-        await createRide(ride);
+        const createdRide = await createRide(ride);
+        if (location.state?.rideRequestId) {
+          try {
+            await acceptRideRequest(location.state.rideRequestId, createdRide._id);
+            navigate("/driver/requests", { replace: true, state: { notice: "Ride published and passenger request accepted." } });
+          } catch (requestError) {
+            navigate("/driver/requests", { replace: true, state: { error: `Ride published, but the request remains open: ${requestError.message}` } });
+          }
+          return;
+        }
         setNotice("Your ride has been published.");
         setForm((current) => ({ ...current, pickupAddress: "", destinationAddress: "", instructions: "" }));
       }
@@ -114,7 +133,7 @@ export default function PostRide() {
             <label className="block"><span className="text-xs text-inkMuted">Fare per passenger (₹)</span><input required type="number" min="0" max="100000" step="1" value={form.fare} onChange={(event) => setForm({ ...form, fare: event.target.value })} className="mt-1 w-full rounded-lg bg-cream px-3 py-2.5 text-sm text-ink outline-none" /></label>
           </div>
           <label className="block"><span className="text-xs text-inkMuted">Ride instructions (optional)</span><textarea maxLength={500} rows={3} value={form.instructions} onChange={(event) => setForm({ ...form, instructions: event.target.value })} placeholder="Pickup details or notes for passengers" className="mt-1 w-full rounded-lg bg-cream px-3 py-2.5 text-sm text-ink outline-none resize-y" /></label>
-          <p className="text-xs text-inkMuted">Fares are informational. RouteMate does not collect or transfer payment.</p>
+          <p className="text-xs text-inkMuted">Fares are informational. along does not collect or transfer payment.</p>
           {error && <p role="alert" className="text-sm text-coral">{error}</p>}
           {notice && <p role="status" className="text-sm text-sage">{notice}</p>}
           <button disabled={saving} className="w-full rounded-lg bg-rose py-3 text-sm font-medium text-plumText disabled:opacity-60">{saving ? "Saving..." : rideId ? "Save ride changes" : "Publish ride"}</button>

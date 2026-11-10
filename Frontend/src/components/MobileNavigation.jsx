@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { Menu, Route, X } from "lucide-react";
 import LogoutButton from "./LogoutButton.jsx";
 
-export default function MobileNavigation({ title = "RouteMate", subtitle, items, counts = {} }) {
+export default function MobileNavigation({ title = "along.", subtitle, items, counts = {} }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef(null);
   const closeRef = useRef(null);

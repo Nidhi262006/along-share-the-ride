@@ -4,6 +4,8 @@ import RatingModal from "../components/RatingModal.jsx";
 import { cancelBooking, listMyBookings } from "../services/rideService.js";
 import FareShare from "../components/FareShare.jsx";
 import { createReport } from "../services/reportService.js";
+import PassengerRequestList from "../components/PassengerRequestList.jsx";
+import { formatPlace } from "../utils/display.js";
 
 const REVIEWS_KEY = "routemate-ride-reviews";
 
@@ -74,7 +76,7 @@ export default function MyRides() {
     try {
       const driverId = typeof booking.ride.driver === "object" ? booking.ride.driver?._id : booking.ride.driver;
       await createReport({ category: reportCategory, description: reportDescription, rideId: booking.ride._id, reportedUserId: driverId });
-      setReportNotice("Report sent to RouteMate administrators.");
+      setReportNotice("Report sent to along administrators.");
       setReportBookingId(null);
       setReportDescription("");
     } catch (requestError) {
@@ -93,7 +95,9 @@ export default function MyRides() {
         {bookings.map((booking) => {
           const ride = booking.ride;
           const review = reviews[ride._id];
-          const route = `${booking.pickup?.address || ride.pickup.address} → ${booking.dropoff?.address || ride.destination.address}`;
+          const pickupAddress = booking.pickup?.address || ride.pickup.address;
+          const dropoffAddress = booking.dropoff?.address || ride.destination.address;
+          const route = `${formatPlace(pickupAddress)} → ${formatPlace(dropoffAddress)}`;
           const departed = new Date(ride.departureTime) <= new Date();
           const active = ["pending", "confirmed"].includes(booking.status);
           const status = booking.status === "pending" ? "Awaiting driver approval" : booking.status === "rejected" ? "Declined" : booking.status === "cancelled" ? "Cancelled" : booking.status === "completed" ? "Completed" : departed ? "Past" : "Upcoming";
@@ -106,12 +110,12 @@ export default function MyRides() {
               className="flex flex-col sm:flex-row sm:items-center justify-between bg-card border border-cardBorder rounded-xl px-4 py-3.5 hover:border-inkMuted transition-colors gap-3"
             >
               <div className="min-w-0">
-                <p className="text-sm font-medium text-ink">{route}</p>
+                <p title={`${pickupAddress} → ${dropoffAddress}`} className="line-clamp-2 text-sm font-medium text-ink">{route}</p>
                 <p className="text-xs text-inkMuted mt-1">
                   ₹{farePerSeat} × {booking.seats} seats = ₹{totalFare} · {new Date(ride.departureTime).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}
                 </p>
                 <p className="text-xs text-inkMuted mt-0.5 flex items-center gap-1">
-                  {ride.driver?.name || "RouteMate driver"}
+                  {ride.driver?.name || "along driver"}
                   <span className="ml-1 text-sage">· {status}</span>
                   <span className="ml-1 text-inkMuted">· Offline payment {booking.paymentStatus || "pending"}</span>
                 </p>
@@ -149,6 +153,8 @@ export default function MyRides() {
           );
         })}
       </div>}
+
+      <PassengerRequestList />
 
       {activeRide && (
         <RatingModal

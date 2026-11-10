@@ -31,7 +31,7 @@ export default function Sidebar() {
   const counts = useCommunicationCounts();
   return (
     <>
-      <MobileNavigation title="RouteMate" subtitle="Share the ride. Save money." items={navItems} counts={counts} />
+      <MobileNavigation title="along." subtitle="Passenger navigation" items={navItems} counts={counts} />
       <aside className="hidden md:flex w-[220px] shrink-0 bg-[#f2f2ee] min-h-screen px-3 py-5 lg:w-[255px]">
 
       {/* Sidebar Card */}
@@ -55,16 +55,12 @@ export default function Sidebar() {
             </div>
 
             <span className="font-heading font-semibold text-[17px]">
-              RouteMate
+              along.
             </span>
 
           </div>
 
-          <p className="text-[8px] leading-[11px] text-[#cfc4d3] ml-10 mt-0.5">
-            Share the ride. Save money.
-            <br />
-            Build community.
-          </p>
+          <p className="text-[8px] leading-[11px] text-[#cfc4d3] ml-10 mt-0.5">Passenger workspace</p>
         </div>
 
         {/* Navigation */}

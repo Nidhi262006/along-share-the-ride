@@ -20,7 +20,7 @@ function linksFor(role) {
     return [
       { to: "/driver", label: "Dashboard", end: true },
       { to: "/driver/post-ride", label: "Post a ride" },
-      { to: "/driver/requests", label: "Bookings" },
+      { to: "/driver/requests", label: "Requests" },
       { to: "/driver/messages", label: "Messages", badge: "messages" },
     ];
   }
@@ -36,6 +36,7 @@ function moreLinksFor(role) {
   if (role === "driver") {
     return [
       ["/driver/rides", "My rides"],
+      ["/driver/bookings", "Bookings"],
       ["/driver/passengers", "Passengers"],
       ["/driver/notifications", "Notifications"],
       ["/driver/earnings", "Earnings"],
@@ -62,7 +63,7 @@ export default function AppHeader() {
   const [accountOpen, setAccountOpen] = useState(false);
   const links = linksFor(user?.role);
   const moreLinks = moreLinksFor(user?.role);
-  const initials = user?.name?.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "RM";
+  const initials = user?.name?.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() || "AL";
   const howTo = user?.role === "driver" ? "/driver/post-ride" : user?.role === "admin" ? "/admin" : "/find-ride";
   const why = user?.role === "driver" ? "/driver/verification" : user?.role === "admin" ? "/admin/reports" : "/safety";
 
@@ -76,7 +77,7 @@ export default function AppHeader() {
       <div className="mx-auto flex h-[72px] max-w-[1320px] items-center gap-4 px-4 sm:px-6 lg:px-8">
         <Link to={user?.role === "admin" ? "/admin" : user?.role === "driver" ? "/driver" : "/passenger"} className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#2a2438] text-white"><Route size={18} /></span>
-          <span className="font-display text-[1.65rem] font-semibold leading-none tracking-[-0.04em] text-[#241c33]">RouteMate</span>
+          <span className="font-display text-[1.65rem] font-semibold leading-none tracking-[-0.04em] text-[#241c33]">along.</span>
         </Link>
 
         <nav className="ml-6 hidden items-center gap-6 lg:flex" aria-label="Primary">
@@ -98,7 +99,7 @@ export default function AppHeader() {
         </nav>
 
         <div className="ml-auto hidden items-center gap-4 xl:flex">
-          <p className="flex items-center gap-2 text-sm text-[#6f687c]"><Leaf size={15} /> Less traffic. More connection.</p>
+          <p className="flex items-center gap-2 text-sm text-[#6f687c]"><Leaf size={15} /> Come along, ride along.</p>
         </div>
 
         <div className="relative ml-auto xl:ml-4">

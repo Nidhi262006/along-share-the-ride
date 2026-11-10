@@ -19,7 +19,7 @@ export async function uploadDriverDocument(type, file) {
       body: file,
     });
   } catch {
-    throw new Error("Unable to reach RouteMate. Check that the backend is running.");
+    throw new Error("Unable to reach along. Check that the backend is running.");
   }
   const data = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(data.message || "Document upload failed");

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Send } from "lucide-react";
 import { useAuth } from "../context/AuthContext.jsx";
+import { formatPlace } from "../utils/display.js";
 import { listConversations, listMessages, sendMessage } from "../services/communicationService.js";
 
 function timeLabel(value) {
@@ -116,10 +117,10 @@ export default function ChatInbox({ driver = false }) {
           <h2 className="px-4 py-3 text-xs uppercase tracking-wide text-plumMuted">Booking conversations</h2>
           {conversations.length === 0 && <p className="px-4 py-8 text-sm text-plumMuted">Conversations appear after a booking is confirmed.</p>}
           {conversations.map((conversation) => {
-            const route = `${conversation.ride.pickup.address} to ${conversation.ride.destination.address}`;
+            const route = `${formatPlace(conversation.ride.pickup.address)} to ${formatPlace(conversation.ride.destination.address)}`;
             return <button type="button" key={conversation.booking._id} onClick={() => { setActiveBookingId(conversation.booking._id); setMessages([]); setError(""); }} className={`w-full text-left px-4 py-3 border-t border-plumBorder hover:bg-plumCard ${activeBookingId === conversation.booking._id ? "bg-plumCard" : ""}`}>
               <span className="flex items-center justify-between gap-2"><span className="text-sm font-medium truncate">{conversation.participant?.name || (driver ? "Passenger" : "Driver")}</span>{conversation.unreadCount > 0 && <span className="min-w-5 h-5 px-1 rounded-full bg-rose text-plumText text-xs flex items-center justify-center">{conversation.unreadCount}</span>}</span>
-              <span className="block mt-1 text-xs text-plumMuted truncate">{route}</span>
+              <span title={`${conversation.ride.pickup.address} to ${conversation.ride.destination.address}`} className="block mt-1 text-xs text-plumMuted truncate">{route}</span>
               <span className="block mt-1 text-xs text-plumMuted">{conversation.booking.status} · {conversation.latestMessage?.text || "No messages yet"}</span>
             </button>;
           })}
@@ -128,7 +129,7 @@ export default function ChatInbox({ driver = false }) {
           {activeConversation ? <>
             <header className="flex items-center gap-3 px-4 py-3 border-b border-plumBorder">
               <button type="button" onClick={() => setActiveBookingId(null)} aria-label="Back to conversations" className="md:hidden text-plumMuted"><ArrowLeft size={18} /></button>
-              <div className="min-w-0 flex-1"><p className="text-sm font-medium truncate">{activeConversation.participant?.name || (driver ? "Passenger" : "Driver")}</p><p className="text-xs text-plumMuted truncate">{activeConversation.ride.pickup.address} to {activeConversation.ride.destination.address}</p></div>
+              <div className="min-w-0 flex-1"><p className="text-sm font-medium truncate">{activeConversation.participant?.name || (driver ? "Passenger" : "Driver")}</p><p title={`${activeConversation.ride.pickup.address} to ${activeConversation.ride.destination.address}`} className="text-xs text-plumMuted truncate">{formatPlace(activeConversation.ride.pickup.address)} to {formatPlace(activeConversation.ride.destination.address)}</p></div>
               <span className="text-xs text-plumMuted capitalize">{activeConversation.booking.status}</span>
             </header>
             <div ref={messagePane} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-3">

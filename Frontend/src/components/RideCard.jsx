@@ -1,4 +1,5 @@
 import { Star } from "lucide-react";
+import { formatPlace } from "../utils/display.js";
 
 export default function RideCard({ ride, selected, onSelect }) {
   const rawDriverName = typeof ride.driver === "string"
@@ -6,7 +7,7 @@ export default function RideCard({ ride, selected, onSelect }) {
     : typeof ride.driver?.name === "string"
       ? ride.driver.name.trim()
       : "";
-  const driverName = rawDriverName || "RouteMate driver";
+  const driverName = rawDriverName || "along driver";
   const initials = typeof ride.initials === "string" && ride.initials.trim()
     ? ride.initials
     : driverName.split(/\s+/).map((part) => part[0]).join("").slice(0, 2);
@@ -30,7 +31,7 @@ export default function RideCard({ ride, selected, onSelect }) {
             <p className="text-xs text-inkMuted mt-0.5">{driverName}</p>
             {ride.car && <p className="text-xs text-inkMuted mt-0.5">{ride.car}</p>}
             {departure && <p className="text-xs text-inkMuted mt-0.5">{departure}</p>}
-            {ride.pickup?.address && ride.destination?.address && <p className="text-xs text-inkMuted mt-1">{ride.pickup.address} to {ride.destination.address}</p>}
+            {ride.pickup?.address && ride.destination?.address && <p title={`${ride.pickup.address} → ${ride.destination.address}`} className="text-xs text-inkMuted mt-1 line-clamp-2">{formatPlace(ride.pickup.address)} to {formatPlace(ride.destination.address)}</p>}
             {ride.seatsAvailable !== undefined && <p className="text-xs text-inkMuted mt-1">{ride.seatsAvailable} seats available</p>}
             {ride.routeMatch && <p className="text-xs text-sage mt-1">Road fit: {Math.round(ride.routeMatch.detourSeconds / 60)} min estimated detour · {ride.routeMatch.routeDeviationMeters} m from route</p>}
             <div className="flex gap-1.5 mt-2 flex-wrap">

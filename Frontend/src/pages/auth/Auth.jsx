@@ -38,22 +38,22 @@ export default function Auth() {
               <div className="w-11 h-11 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center">
                 <Route size={24} />
               </div>
-              <span className="font-heading text-2xl font-semibold">RouteMate</span>
+              <span className="font-heading text-2xl font-semibold">along.</span>
             </div>
             <div className="max-w-lg mt-28">
-              <p className="uppercase tracking-[0.22em] text-xs text-[#cbbfd3]">Smarter everyday travel</p>
+              <p className="uppercase tracking-[0.22em] text-xs text-[#cbbfd3]">Along</p>
               <h1 className="font-heading text-5xl xl:text-6xl font-semibold leading-tight mt-4">
-                Your commute,<br />not your cost.
+                Your commute, not your cost.
               </h1>
               <p className="text-[#d0c5d7] mt-6 max-w-md leading-7">
-                Find trusted rides, share your journey, save money and build a better commuting community.
+                Find a ride, book a seat, or share your upcoming route with other students.
               </p>
             </div>
           </div>
           <div className="flex gap-3 text-sm text-[#d0c5d7]">
             <span className="px-4 py-2 rounded-full bg-white/10">Verified riders</span>
             <span className="px-4 py-2 rounded-full bg-white/10">Easy booking</span>
-            <span className="px-4 py-2 rounded-full bg-white/10">Community first</span>
+            <span className="px-4 py-2 rounded-full bg-white/10">Student rides</span>
           </div>
         </section>
 
@@ -61,13 +61,13 @@ export default function Auth() {
           <div className="w-full max-w-md">
             <div className="lg:hidden flex items-center gap-2 mb-10">
               <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center"><Route size={21} /></div>
-              <span className="font-heading text-xl font-semibold">RouteMate</span>
+              <span className="font-heading text-xl font-semibold">along.</span>
             </div>
 
             <div className="mb-8">
               <p className="text-[#a99bb1] text-sm">Welcome back</p>
-              <h2 className="font-heading text-3xl font-semibold mt-2">{mode === "login" ? "Sign in to RouteMate" : "Create your account"}</h2>
-              <p className="text-[#a99bb1] text-sm mt-2">{mode === "login" ? "Continue your journey with your community." : "Join your local ride-sharing community."}</p>
+              <h2 className="font-heading text-3xl font-semibold mt-2">{mode === "login" ? "Sign in to along." : "Create your account"}</h2>
+              <p className="text-[#a99bb1] text-sm mt-2">{mode === "login" ? "Sign in to find and manage rides." : "Create an account to find or offer rides."}</p>
             </div>
 
             <div className="grid grid-cols-2 p-1 rounded-xl bg-white/5 border border-white/10 mb-6">
@@ -113,7 +113,7 @@ export default function Auth() {
               </button>
             </form>
 
-            <p className="text-center text-xs text-[#8f8198] mt-7">By continuing, you agree to RouteMate's Terms and Privacy Policy.</p>
+            <p className="text-center text-xs text-[#8f8198] mt-7">By continuing, you agree to along&apos;s Terms and Privacy Policy.</p>
           </div>
         </section>
       </div>

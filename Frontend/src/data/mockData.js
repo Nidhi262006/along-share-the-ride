@@ -61,7 +61,7 @@ export const notifications = [
   { id: 2, title: "Payment received", subtitle: "\u20b940 · 8:05 AM", type: "payment" },
   { id: 3, title: "New message", subtitle: "Rohit Sharma · 8:03 AM", type: "message" },
   { id: 4, title: "Ride cancelled", subtitle: "Amit Verma · 7:45 AM", type: "cancel" },
-  { id: 5, title: "Welcome to RouteMate!", subtitle: "Explore and earn rewards · 6:30 AM", type: "info" },
+  { id: 5, title: "Welcome to along.", subtitle: "Explore your ride options · 6:30 AM", type: "info" },
 ];
 
 export const transactions = [

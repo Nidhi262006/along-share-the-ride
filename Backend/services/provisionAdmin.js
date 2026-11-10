@@ -16,7 +16,7 @@ async function provisionAdmin() {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  await User.create({ name: "RouteMate Administrator", email, passwordHash, role: "admin", serviceCity: null });
+  await User.create({ name: "along Administrator", email, passwordHash, role: "admin", serviceCity: null });
 }
 
 module.exports = { provisionAdmin };

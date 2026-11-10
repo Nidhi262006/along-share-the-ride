@@ -1,7 +1,9 @@
+import { formatPlace } from "../../utils/display.js";
+
 function driverNameOf(ride) {
   if (typeof ride.driver === "string" && ride.driver.trim()) return ride.driver.trim();
   if (typeof ride.driver?.name === "string" && ride.driver.name.trim()) return ride.driver.name.trim();
-  return "RouteMate driver";
+  return "along driver";
 }
 
 function clock(value) {
@@ -19,7 +21,7 @@ export default function RideResultCard({ ride, selected, onSelect }) {
       <div className="grid grid-cols-[auto_1fr_auto] items-center gap-3 sm:gap-6">
         <div>
           <p className="font-display text-3xl text-[#241c33] sm:text-4xl">{departure ? clock(departure) : "--"}</p>
-          <p className="mt-1 max-w-[9rem] truncate text-sm text-[#6f687c]">{ride.pickup?.address || "Pickup"}</p>
+          <p title={ride.pickup?.address} className="mt-1 max-w-[9rem] truncate text-sm text-[#6f687c]">{formatPlace(ride.pickup?.address) || "Pickup"}</p>
         </div>
         <div className="min-w-0 text-center">
           <p className="text-xs text-[#8a8498]">{departure ? departure.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }) : "Shared route"}</p>
@@ -32,7 +34,7 @@ export default function RideResultCard({ ride, selected, onSelect }) {
         </div>
         <div className="text-right">
           <p className="text-sm text-[#6f687c]">{ride.seatsAvailable ?? 0} seats left</p>
-          <p className="mt-6 max-w-[10rem] text-sm font-medium leading-5 text-[#241c33] ml-auto">{ride.destination?.address || "Drop-off"}</p>
+          <p title={ride.destination?.address} className="mt-6 line-clamp-2 max-w-[10rem] text-sm font-medium leading-5 text-[#241c33] ml-auto">{formatPlace(ride.destination?.address) || "Drop-off"}</p>
         </div>
       </div>
       <div className="mt-4 flex flex-col gap-4 border-t border-[#e7e1ee] pt-4 sm:flex-row sm:items-center">

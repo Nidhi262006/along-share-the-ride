@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeftRight, CalendarDays, Compass, MapPin, Search, Users } from "lucide-react";
+import { ArrowLeftRight, CalendarDays, MapPin, Search, Users } from "lucide-react";
 
 function localDate(value) {
   const date = value ? new Date(value) : new Date();
@@ -42,21 +42,14 @@ export default function PassengerHero({ cityLabel, onSearch }) {
           aria-label="A car travelling along a mountain road at sunset"
         />
         <div className="relative z-10 max-w-xl pb-8 lg:pb-0">
-          <p className="along-kicker flex items-center gap-2 text-[#2a2438]"><span className="h-1.5 w-1.5 rounded-full bg-[#7655a4]" /> Good company. Great journeys.</p>
+          <p className="along-kicker flex items-center gap-2 text-[#2a2438]"><span className="h-1.5 w-1.5 rounded-full bg-[#7655a4]" /> Find a ride</p>
           <h1 className="mt-8 font-display text-[clamp(2.7rem,6.6vw,4.7rem)] leading-[0.98] tracking-[-0.055em] text-[#241c33]">
-            Same direction.<br />
-            <span className="font-normal italic">Better together.</span>
+            Same direction. Better together.
           </h1>
           <p className="mt-6 max-w-sm text-sm leading-7 text-[#81788f] sm:text-base">
-            Turn an empty seat into a new connection.<br className="hidden sm:block" />
-            Find your people. Share the road.
+            Search upcoming rides and find a route that works for you.
           </p>
         </div>
-        <div className="absolute bottom-28 right-[34%] z-10 hidden -rotate-6 rounded-xl bg-[#2a2438] px-5 py-3 text-white shadow-lg lg:flex lg:items-center lg:gap-3">
-          <Compass size={22} className="text-[#9c72c7]" />
-          <span className="text-xs leading-5">A little less solo.<br /><strong>A lot more possibility.</strong></span>
-        </div>
-        <p className="absolute right-12 top-10 hidden text-[10px] uppercase tracking-[0.16em] text-[#8a8498] lg:block">Your next chapter starts here ↗</p>
         <form onSubmit={submit} className="relative z-20 mt-auto w-full rounded-[18px] border border-[#e7e0ed] bg-white/95 p-3 shadow-[0_18px_48px_rgba(42,36,56,0.12)] backdrop-blur sm:p-4 lg:absolute lg:inset-x-[30px] lg:bottom-5 lg:mt-0 lg:w-auto">
           <div className="grid gap-2 lg:grid-cols-[1fr_auto_1fr_0.85fr_0.8fr_auto] lg:items-center">
             <label className="px-2 py-2">

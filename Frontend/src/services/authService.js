@@ -12,7 +12,7 @@ export async function request(path, options = {}) {
       },
     });
   } catch {
-    throw new Error("Unable to reach RouteMate. Check that the backend is running.");
+    throw new Error("Unable to reach along. Check that the backend is running.");
   }
 
   let data = {};

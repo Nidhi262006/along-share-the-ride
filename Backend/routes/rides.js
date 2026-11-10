@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Booking = require("../model/Booking");
 const Ride = require("../model/Ride");
+const RideRequest = require("../model/RideRequest");
 const User = require("../model/User");
 const { requireAuth, requireRole, requireApprovedDriver } = require("../middleware/auth");
 const { matchRides, validateRideWaypoints } = require("../services/routeMatching");
@@ -188,6 +189,248 @@ router.get("/bookings", requireRole("passenger"), async (req, res, next) => {
   }
 });
 
+router.post("/requests", requireRole("passenger"), async (req, res, next) => {
+  const city = assignedCity(req, res);
+  if (!city) return;
+  const body = req.body || {};
+  const pickupError = validPoint(body.pickup, city, "Pickup");
+  const destinationError = validPoint(body.destination, city, "Destination");
+  if (pickupError || destinationError) return res.status(400).json({ message: pickupError || destinationError });
+  const departureTime = new Date(body.departureTime);
+  if (!Number.isFinite(departureTime.getTime()) || departureTime <= new Date()) {
+    return res.status(400).json({ message: "Departure time must be a valid future date and time" });
+  }
+  const passengers = Number(body.passengers);
+  if (!Number.isSafeInteger(passengers) || passengers < 1) {
+    return res.status(400).json({ message: "Passengers must be a positive whole number" });
+  }
+  if (body.note !== undefined && (typeof body.note !== "string" || body.note.trim().length > 500)) {
+    return res.status(400).json({ message: "Note must be 500 characters or fewer" });
+  }
+  let maxFarePerSeat = null;
+  if (body.maxFarePerSeat !== undefined && body.maxFarePerSeat !== null && body.maxFarePerSeat !== "") {
+    const farePaise = moneyToPaise(body.maxFarePerSeat);
+    if (farePaise === null) return res.status(400).json({ message: "Maximum fare must be between 0 and 100000 with at most two decimal places" });
+    maxFarePerSeat = farePaise / 100;
+  }
+  try {
+    const rideRequest = await RideRequest.create({
+      passenger: req.user._id,
+      city,
+      pickup: { lat: Number(body.pickup.lat), lng: Number(body.pickup.lng), address: body.pickup.address.trim() },
+      destination: { lat: Number(body.destination.lat), lng: Number(body.destination.lng), address: body.destination.address.trim() },
+      departureTime,
+      passengers,
+      note: body.note?.trim() || "",
+      maxFarePerSeat,
+    });
+    return res.status(201).json({ request: rideRequest });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/requests/mine", requireRole("passenger"), async (req, res, next) => {
+  const city = assignedCity(req, res);
+  if (!city) return;
+  try {
+    const requests = await RideRequest.find({ passenger: req.user._id, city })
+      .populate({ path: "acceptedRide", select: "departureTime fare" })
+      .populate({ path: "booking", select: "status" })
+      .sort({ createdAt: -1 });
+    return res.json({ requests });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.patch("/requests/:requestId/cancel", requireRole("passenger"), async (req, res, next) => {
+  const city = assignedCity(req, res);
+  if (!city) return;
+  if (!mongoose.isValidObjectId(req.params.requestId)) return res.status(400).json({ message: "Invalid ride request ID" });
+  try {
+    const rideRequest = await RideRequest.findOneAndUpdate(
+      { _id: req.params.requestId, passenger: req.user._id, city, status: "open" },
+      { $set: { status: "cancelled" } },
+      { new: true }
+    );
+    if (!rideRequest) return res.status(404).json({ message: "Open ride request not found" });
+    return res.json({ request: rideRequest });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.get("/requests/open", requireRole("driver"), async (req, res, next) => {
+  const city = assignedCity(req, res);
+  if (!city) return;
+  try {
+    const requests = await RideRequest.find({
+      city,
+      passenger: { $ne: req.user._id },
+      status: "open",
+      departureTime: { $gt: new Date() },
+      declinedBy: { $ne: req.user._id },
+    }).populate("passenger", "name").sort({ departureTime: 1 });
+    return res.json({ requests });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/requests/:requestId/decline", requireRole("driver"), async (req, res, next) => {
+  const city = assignedCity(req, res);
+  if (!city) return;
+  if (!mongoose.isValidObjectId(req.params.requestId)) return res.status(400).json({ message: "Invalid ride request ID" });
+  try {
+    const rideRequest = await RideRequest.findOneAndUpdate(
+      { _id: req.params.requestId, city, status: "open", passenger: { $ne: req.user._id } },
+      { $addToSet: { declinedBy: req.user._id } },
+      { new: true }
+    );
+    if (!rideRequest) return res.status(404).json({ message: "Open passenger request not found" });
+    return res.json({ request: rideRequest });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.post("/requests/:requestId/accept", requireRole("driver"), requireApprovedDriver, async (req, res, next) => {
+  const city = assignedCity(req, res);
+  if (!city) return;
+  if (!mongoose.isValidObjectId(req.params.requestId) || !mongoose.isValidObjectId(req.body?.rideId)) {
+    return res.status(400).json({ message: "A valid ride request and ride ID are required" });
+  }
+  try {
+    const rideRequest = await RideRequest.findOne({
+      _id: req.params.requestId,
+      city,
+      status: "open",
+      passenger: { $ne: req.user._id },
+      declinedBy: { $ne: req.user._id },
+      departureTime: { $gt: new Date() },
+    });
+    if (!rideRequest) return res.status(404).json({ message: "Open passenger request not found" });
+    const activePassenger = await User.exists({ _id: rideRequest.passenger, role: "passenger", isSuspended: { $ne: true } });
+    if (!activePassenger) return res.status(409).json({ message: "The passenger is no longer available" });
+    const ride = await Ride.findOne({
+      _id: req.body.rideId,
+      driver: req.user._id,
+      city,
+      status: "open",
+      departureTime: { $gt: new Date() },
+      seatsAvailable: { $gte: rideRequest.passengers },
+    });
+    if (!ride) return res.status(409).json({ message: "Choose an upcoming ride with enough available seats" });
+    if (Math.abs(ride.departureTime.getTime() - rideRequest.departureTime.getTime()) > DEPARTURE_WINDOW_MINUTES * 60 * 1000) {
+      return res.status(409).json({ message: "Choose a ride departing near the passenger's requested time" });
+    }
+    if (rideRequest.maxFarePerSeat !== null && ride.fare > rideRequest.maxFarePerSeat) {
+      return res.status(409).json({ message: "This ride's fare is above the passenger's maximum" });
+    }
+    const routeResult = await matchRides([ride], {
+      pickup: { lat: rideRequest.pickup.lat, lng: rideRequest.pickup.lng },
+      destination: { lat: rideRequest.destination.lat, lng: rideRequest.destination.lng },
+    }, "departure");
+    if (!routeResult.matching.available) return res.status(503).json({ message: "Road route validation is unavailable. Try again before accepting." });
+    if (!routeResult.rides.length) return res.status(409).json({ message: "This ride does not fit the passenger's requested route" });
+
+    const pendingBooking = await Booking.exists({
+      ride: ride._id,
+      passenger: rideRequest.passenger,
+      status: "pending",
+    });
+    if (pendingBooking) return res.status(409).json({ message: "The passenger already has a booking awaiting review for this ride" });
+    const existingBooking = await Booking.findOne({
+      ride: ride._id,
+      passenger: rideRequest.passenger,
+      status: "confirmed",
+    });
+    if (existingBooking && existingBooking.seats < rideRequest.passengers) {
+      return res.status(409).json({ message: "The passenger already has a smaller active booking on this ride" });
+    }
+    if (existingBooking && (!existingBooking.pickup || !existingBooking.dropoff
+      || !closeToPostedPoint(existingBooking.pickup, rideRequest.pickup)
+      || !closeToPostedPoint(existingBooking.dropoff, rideRequest.destination))) {
+      return res.status(409).json({ message: "The passenger has a different route on this ride already" });
+    }
+
+    let booking = existingBooking;
+    if (!booking) {
+      const reservedRide = await Ride.findOneAndUpdate(
+        {
+          _id: ride._id,
+          driver: req.user._id,
+          city,
+          updatedAt: ride.updatedAt,
+          status: "open",
+          departureTime: { $gt: new Date() },
+          seatsAvailable: { $gte: rideRequest.passengers },
+        },
+        [{ $set: {
+          seatsAvailable: { $subtract: ["$seatsAvailable", rideRequest.passengers] },
+          status: { $cond: [{ $eq: [{ $subtract: ["$seatsAvailable", rideRequest.passengers] }, 0] }, "full", "open"] },
+        } }],
+        { new: true, updatePipeline: true }
+      );
+      if (!reservedRide) return res.status(409).json({ message: "This ride no longer has enough seats" });
+      const farePerSeatPaise = moneyToPaise(reservedRide.fare);
+      const totalFarePaise = farePerSeatPaise === null ? null : farePerSeatPaise * rideRequest.passengers;
+      if (farePerSeatPaise === null || !Number.isSafeInteger(totalFarePaise)) {
+        await restoreSeats(reservedRide._id, rideRequest.passengers);
+        return res.status(409).json({ message: "This ride has an invalid fare and cannot be booked" });
+      }
+      try {
+        [booking] = await Booking.create([{
+          ride: reservedRide._id,
+          passenger: rideRequest.passenger,
+          seats: rideRequest.passengers,
+          pickup: rideRequest.pickup,
+          dropoff: rideRequest.destination,
+          rideVersion: ride.updatedAt,
+          farePerSeat: farePerSeatPaise / 100,
+          totalFare: totalFarePaise / 100,
+          farePerSeatPaise,
+          totalFarePaise,
+          paymentMethod: "offline",
+          paymentStatus: "pending",
+          status: "confirmed",
+        }]);
+      } catch (error) {
+        await restoreSeats(reservedRide._id, rideRequest.passengers);
+        if (error?.code === 11000) return res.status(409).json({ message: "The passenger already has an active booking for this ride" });
+        throw error;
+      }
+    }
+
+    const accepted = await RideRequest.findOneAndUpdate(
+      { _id: rideRequest._id, status: "open", declinedBy: { $ne: req.user._id } },
+      { $set: { status: "accepted", acceptedRide: ride._id, booking: booking._id } },
+      { new: true }
+    );
+    if (!accepted) {
+      if (!existingBooking) {
+        await Booking.updateOne({ _id: booking._id, status: "confirmed" }, { $set: { status: "cancelled", seatReleaseState: "pending" } });
+        await releaseBookingSeats({ ...booking.toObject(), ride: ride._id, seatReleaseState: "pending" });
+      }
+      return res.status(409).json({ message: "This passenger request has already been accepted or cancelled" });
+    }
+    await createNotifications([{
+      recipient: rideRequest.passenger,
+      eventType: "booking_confirmed",
+      booking: booking._id,
+      ride: ride._id,
+      title: "Ride request accepted",
+      message: "A driver accepted your ride request. Your booking is confirmed.",
+      dedupeKey: `ride_request_accepted:${rideRequest._id}:${rideRequest.passenger}`,
+    }]);
+    await booking.populate({ path: "ride", populate: { path: "driver", select: "name isVerified" } });
+    return res.json({ request: accepted, booking });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 router.post("/:rideId/bookings", requireRole("passenger"), async (req, res, next) => {
   const city = assignedCity(req, res);
   if (!city) return;
@@ -321,7 +564,7 @@ router.post("/:rideId/bookings", requireRole("passenger"), async (req, res, next
       title: requiresDriverDecision ? "Pickup and drop-off request" : "Ride booking confirmed",
       message: requiresDriverDecision
         ? `A passenger requested ${seats} seat${seats === 1 ? "" : "s"} with a route proposal. Review and accept or reject it.`
-        : `${seats} seat${seats === 1 ? "" : "s"} booked for ${ride.pickup.address} to ${ride.destination.address}.`,
+        : `${seats} seat${seats === 1 ? "" : "s"} booked. Your ride details are in My rides.`,
     };
     const notificationRecipients = requiresDriverDecision ? [ride.driver] : [req.user._id, ride.driver];
     await createNotifications(notificationRecipients.map((recipient) => ({
@@ -424,7 +667,7 @@ router.patch("/bookings/:bookingId/cancel", requireRole("passenger"), async (req
         booking: booking._id,
         ride: booking.ride._id,
         title: "Booking cancelled",
-        message: `${booking.seats} seat${booking.seats === 1 ? "" : "s"} for ${booking.ride.pickup.address} to ${booking.ride.destination.address} was cancelled.`,
+        message: `${booking.seats} seat${booking.seats === 1 ? "" : "s"} for this ride was cancelled.`,
       };
       await createNotifications([
         { ...retryNotice, recipient: req.user._id, dedupeKey: `booking_cancelled:${booking._id}:${req.user._id}` },
@@ -445,7 +688,7 @@ router.patch("/bookings/:bookingId/cancel", requireRole("passenger"), async (req
       booking: claimed._id,
       ride: booking.ride._id,
       title: "Booking cancelled",
-      message: `${booking.seats} seat${booking.seats === 1 ? "" : "s"} for ${booking.ride.pickup.address} to ${booking.ride.destination.address} was cancelled.`,
+      message: `${booking.seats} seat${booking.seats === 1 ? "" : "s"} for this ride was cancelled.`,
     };
     await createNotifications([
       { ...cancellationNotification, recipient: req.user._id, dedupeKey: `booking_cancelled:${claimed._id}:${req.user._id}` },
@@ -637,7 +880,7 @@ router.patch("/:rideId", requireRole("driver"), requireApprovedDriver, async (re
         eventType: "ride_updated",
         ride: ride._id,
         title: "Ride details updated",
-        message: `The driver changed ${changedFields.join(", ")} for ${updated.pickup.address} to ${updated.destination.address}.`,
+        message: `The driver updated the ride: ${changedFields.join(", ")}.`,
         dedupeKey: `ride_updated:${updated._id}:${updated.updatedAt.getTime()}:${recipient}`,
       })));
     }
@@ -673,8 +916,8 @@ router.patch("/:rideId/status", requireRole("driver"), async (req, res, next) =>
     const eventType = status === "completed" ? "ride_completed" : "ride_cancelled";
     const title = status === "completed" ? "Ride completed" : "Ride cancelled";
     const message = status === "completed"
-      ? `Your ride from ${ride.pickup.address} to ${ride.destination.address} is complete.`
-      : `Your ride from ${ride.pickup.address} to ${ride.destination.address} was cancelled by the driver.`;
+      ? "Your ride is complete."
+      : "Your ride was cancelled by the driver.";
     const recipients = new Map();
     recipients.set(String(ride.driver), ride.driver);
     activeBookings.forEach((booking) => recipients.set(String(booking.passenger), booking.passenger));

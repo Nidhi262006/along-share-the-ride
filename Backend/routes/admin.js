@@ -215,7 +215,7 @@ router.patch("/rides/:rideId/moderation", async (req, res, next) => {
         eventType: "ride_cancelled",
         ride: ride._id,
         title: "Ride removed by moderation",
-        message: `A ride from ${ride.pickup.address} to ${ride.destination.address} was removed: ${reason}`,
+        message: `A ride listing was removed: ${reason}`,
         dedupeKey: `admin_ride_cancelled:${ride._id}:${cancelled.updatedAt.getTime()}:${recipient}`,
       })));
     } else {

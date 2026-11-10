@@ -62,3 +62,37 @@ export async function cancelBooking(bookingId) {
     method: "PATCH",
   })).booking;
 }
+
+export async function createRideRequest(rideRequest) {
+  return (await request("/rides/requests", {
+    method: "POST",
+    body: JSON.stringify(rideRequest),
+  })).request;
+}
+
+export async function listMyRideRequests() {
+  return (await request("/rides/requests/mine")).requests;
+}
+
+export async function cancelRideRequest(requestId) {
+  return (await request(`/rides/requests/${encodeURIComponent(requestId)}/cancel`, {
+    method: "PATCH",
+  })).request;
+}
+
+export async function listOpenRideRequests() {
+  return (await request("/rides/requests/open")).requests;
+}
+
+export async function declineRideRequest(requestId) {
+  return (await request(`/rides/requests/${encodeURIComponent(requestId)}/decline`, {
+    method: "POST",
+  })).request;
+}
+
+export async function acceptRideRequest(requestId, rideId) {
+  return request(`/rides/requests/${encodeURIComponent(requestId)}/accept`, {
+    method: "POST",
+    body: JSON.stringify({ rideId }),
+  });
+}

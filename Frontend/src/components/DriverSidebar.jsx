@@ -19,7 +19,8 @@ import {
 const navItems = [
   { to: "/driver", label: "Dashboard", icon: Home },
   { to: "/driver/rides", label: "My Rides", icon: CarFront },
-  { to: "/driver/requests", label: "Ride Requests", icon: ClipboardList },
+  { to: "/driver/requests", label: "Requests", icon: ClipboardList },
+  { to: "/driver/bookings", label: "Bookings", icon: Users },
   { to: "/driver/passengers", label: "Passengers", icon: Users },
   { to: "/driver/messages", label: "Messages", icon: MessageSquare },
   { to: "/driver/notifications", label: "Notifications", icon: Bell },
@@ -33,7 +34,7 @@ export default function DriverSidebar() {
   const counts = useCommunicationCounts();
   return (
     <>
-      <MobileNavigation title="RouteMate Driver" subtitle="Driver's workspace" items={navItems.map((item) => ({ ...item, end: item.to === "/driver" }))} counts={counts} />
+      <MobileNavigation title="along. Driver" subtitle="Driver's workspace" items={navItems.map((item) => ({ ...item, end: item.to === "/driver" }))} counts={counts} />
       <aside className="hidden md:flex w-[220px] shrink-0 bg-[#f2f2ee] min-h-screen px-3 py-5 lg:w-[255px]">
       
             {/* Sidebar Card */}
@@ -57,7 +58,7 @@ export default function DriverSidebar() {
                   </div>
       
                   <span className="font-heading font-semibold text-[17px]">
-                    RouteMate
+                    along.
                   </span>
       
                 </div>
@@ -124,11 +125,7 @@ export default function DriverSidebar() {
                   <LogoutButton />
                 </div>
       
-                <p className="text-[7px] leading-[10px] text-[#bdb1c4] text-right pr-1">
-                  Ready for your next ride?
-                  <br />
-                  Keep your availability 
-                </p>
+                <p className="text-[7px] leading-[10px] text-[#bdb1c4] text-right pr-1">Update your ride availability</p>
       
               </div>
       

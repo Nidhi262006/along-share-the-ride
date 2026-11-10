@@ -29,7 +29,7 @@ async function cancelDriverFutureRides(driverId) {
       eventType: "ride_cancelled",
       ride: ride._id,
       title: "Ride cancelled",
-      message: `The ride from ${ride.pickup.address} to ${ride.destination.address} was cancelled because driver eligibility changed.`,
+      message: "This ride was cancelled because driver eligibility changed.",
       dedupeKey: `ride_cancelled:${ride._id}:${cancelledRide.updatedAt.getTime()}:${recipientId}`,
     })));
   }

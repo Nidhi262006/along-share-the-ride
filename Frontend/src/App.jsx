@@ -5,6 +5,7 @@ import AppFooter from "./components/dashboard/AppFooter.jsx";
 import Home from "./pages/Home.jsx";
 import FindRide from "./pages/FindRide.jsx";
 import MyRides from "./pages/MyRides.jsx";
+import RideRequest from "./pages/RideRequest.jsx";
 import Messages from "./pages/Messages.jsx";
 import Notifications from "./pages/Notifications.jsx";
 import Wallet from "./pages/Wallet.jsx";
@@ -13,7 +14,7 @@ import Settings from "./pages/Settings.jsx";
 import Safety from "./pages/Safety.jsx";
 import Auth from "./pages/auth/Auth.jsx";
 import DriverDashboard from "./pages/driver/DriverDashboard.jsx";
-import { DriverRides, RideRequests, Passengers, Earnings, DriverProfile } from "./pages/driver/DriverPages.jsx";
+import { DriverRides, RideRequests, DriverBookings, Passengers, Earnings, DriverProfile } from "./pages/driver/DriverPages.jsx";
 import DriverMessages from "./pages/driver/DriverMessages.jsx";
 import DriverVerification from "./pages/driver/DriverVerification.jsx";
 import PostRide from "./pages/driver/PostRide.jsx";
@@ -73,6 +74,7 @@ export default function App() {
     <Route path="/passenger" element={<RequireAuth><RequireRole role="passenger"><Home /></RequireRole></RequireAuth>} />
     <Route path="/find-ride" element={<RequireAuth><RequireRole role="passenger"><FindRide /></RequireRole></RequireAuth>} />
     <Route path="/my-rides" element={<RequireAuth><RequireRole role="passenger"><MyRides /></RequireRole></RequireAuth>} />
+    <Route path="/ride-request" element={<RequireAuth><RequireRole role="passenger"><RideRequest /></RequireRole></RequireAuth>} />
     <Route path="/messages" element={<RequireAuth><RequireRole role="passenger"><Messages /></RequireRole></RequireAuth>} />
     <Route path="/notifications" element={<RequireAuth><RequireRole role="passenger"><Notifications /></RequireRole></RequireAuth>} />
     <Route path="/wallet" element={<RequireAuth><RequireRole role="passenger"><Wallet /></RequireRole></RequireAuth>} />
@@ -85,6 +87,7 @@ export default function App() {
     <Route path="/driver/post-ride" element={<RequireAuth><RequireRole role="driver"><PostRide /></RequireRole></RequireAuth>} />
     <Route path="/driver/post-ride/:rideId" element={<RequireAuth><RequireRole role="driver"><PostRide /></RequireRole></RequireAuth>} />
     <Route path="/driver/requests" element={<RequireAuth><RequireRole role="driver"><RideRequests /></RequireRole></RequireAuth>} />
+    <Route path="/driver/bookings" element={<RequireAuth><RequireRole role="driver"><DriverBookings /></RequireRole></RequireAuth>} />
     <Route path="/driver/passengers" element={<RequireAuth><RequireRole role="driver"><Passengers /></RequireRole></RequireAuth>} />
     <Route path="/driver/messages" element={<RequireAuth><RequireRole role="driver"><DriverMessages /></RequireRole></RequireAuth>} />
     <Route path="/driver/notifications" element={<RequireAuth><RequireRole role="driver"><Notifications /></RequireRole></RequireAuth>} />

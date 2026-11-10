@@ -1,6 +1,6 @@
-# RouteMate
+# Along: share the ride
 
-A student ride-sharing web app built with React, Vite, Tailwind CSS, Express, and MongoDB.
+along: share the ride, a student ride-sharing web app.
 
 ## Configure the backend
 
@@ -47,6 +47,14 @@ Open http://localhost:5173. If Vite uses another port, set `FRONTEND_ORIGIN` in 
 Passwords are stored as bcrypt hashes. Sessions use an HttpOnly JWT cookie with an eight-hour lifetime. Ride posting, bookings, route matching, chat, and notifications are persisted in MongoDB; wallet and profile extras remain demonstration data.
 
 Signup and login are limited to 10 attempts per IP per 15-minute window.
+
+## Passenger ride requests
+
+- `POST /api/rides/requests` creates a future ride request for the authenticated passenger.
+- `GET /api/rides/requests/mine` lists that passenger's requests; `PATCH /api/rides/requests/:requestId/cancel` cancels an open request.
+- `GET /api/rides/requests/open` lists open requests in a driver's service city.
+- `POST /api/rides/requests/:requestId/decline` hides a request for that driver.
+- `POST /api/rides/requests/:requestId/accept` accepts a request for one of the driver's rides, reserves seats, creates or links a booking, and notifies the passenger.
 
 Chat endpoints are `GET /api/chat/conversations`, `GET /api/chat/:bookingId/messages`, and `POST /api/chat/:bookingId/messages`. Notifications are listed at `GET /api/notifications` and can be marked read at `PATCH /api/notifications/:notificationId/read` or `PATCH /api/notifications/read-all`.
 

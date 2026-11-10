@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -9,6 +9,12 @@ import {
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { formatPlace } from "../utils/display.js";
+
+const MAP_TILES = {
+  url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  attribution: "&copy; OpenStreetMap contributors",
+};
 
 // ===============================
 // DEMO LOCATIONS
@@ -303,6 +309,24 @@ function MapViewUpdater({
   return null;
 }
 
+function MapResizer() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    const resizeMap = () => map.invalidateSize({ pan: false });
+    const frame = window.requestAnimationFrame(resizeMap);
+    const observer = new ResizeObserver(resizeMap);
+    observer.observe(container);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [map]);
+
+  return null;
+}
+
 // ===============================
 // MAIN MAP
 // ===============================
@@ -312,26 +336,14 @@ export default function RealMap({
   pickupLocation,
   destinationLocation,
 }) {
-  /*
-    If the user has not selected locations yet,
-    use our demo locations.
-  */
-
   const locations = cityLocations[city] || cityLocations.nagpur;
-  const pickup = pickupLocation
-    ? [
-        pickupLocation.latitude,
-        pickupLocation.longitude,
-      ]
-    : locations.pickup;
-
-  const destination = destinationLocation
-    ? [
-        destinationLocation.latitude,
-        destinationLocation.longitude,
-      ]
-    : locations.destination;
-
+  const hasRoute = Boolean(pickupLocation && destinationLocation);
+  const pickup = useMemo(() => pickupLocation
+    ? [pickupLocation.latitude, pickupLocation.longitude]
+    : locations.center, [pickupLocation?.latitude, pickupLocation?.longitude, locations]);
+  const destination = useMemo(() => destinationLocation
+    ? [destinationLocation.latitude, destinationLocation.longitude]
+    : locations.center, [destinationLocation?.latitude, destinationLocation?.longitude, locations]);
   const currentLocation = locations.center;
 
   const [route, setRoute] = useState([]);
@@ -340,23 +352,33 @@ export default function RealMap({
 
   const [duration, setDuration] = useState(null);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (hasRoute) return;
+    setRoute([]);
+    setDistance(null);
+    setDuration(null);
+    setLoading(false);
+    setError("");
+  }, [hasRoute]);
 
   return (
     <div
       style={{
         position: "relative",
         width: "100%",
-        height: "100%",
-        minHeight: "420px",
+        height: "320px",
+        minHeight: "280px",
         borderRadius: "24px",
         overflow: "hidden",
       }}
     >
       <MapContainer
-        center={pickup}
+        key={city}
+        center={hasRoute ? pickup : currentLocation}
         zoom={13}
         scrollWheelZoom={true}
         zoomControl={false}
@@ -369,10 +391,7 @@ export default function RealMap({
             MAP TILES
         ====================== */}
 
-        <TileLayer
-          attribution="&copy; OpenStreetMap contributors &copy; CARTO"
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        />
+        <TileLayer attribution={MAP_TILES.attribution} url={MAP_TILES.url} />
 
         {/* =====================
             CURRENT LOCATION
@@ -391,37 +410,23 @@ export default function RealMap({
             PICKUP
         ====================== */}
 
-        <Marker
-          position={pickup}
-          icon={pickupIcon}
-        >
-          <Popup>
-            {pickupLocation
-              ? pickupLocation.name
-              : "Pickup location"}
-          </Popup>
-        </Marker>
+        {hasRoute && <Marker position={pickup} icon={pickupIcon}>
+          <Popup>{pickupLocation.name}</Popup>
+        </Marker>}
 
         {/* =====================
             DESTINATION
         ====================== */}
 
-        <Marker
-          position={destination}
-          icon={destinationIcon}
-        >
-          <Popup>
-            {destinationLocation
-              ? destinationLocation.name
-              : "Destination"}
-          </Popup>
-        </Marker>
+        {hasRoute && <Marker position={destination} icon={destinationIcon}>
+          <Popup>{destinationLocation.name}</Popup>
+        </Marker>}
 
         {/* =====================
             REAL ROAD ROUTE
         ====================== */}
 
-        {route.length > 0 && (
+        {hasRoute && route.length > 0 && (
           <Polyline
             positions={route}
             pathOptions={{
@@ -436,7 +441,7 @@ export default function RealMap({
             ROUTE API
         ====================== */}
 
-        <RealRoute
+        {hasRoute && <RealRoute
           pickup={pickup}
           destination={destination}
           setRoute={setRoute}
@@ -444,16 +449,16 @@ export default function RealMap({
           setDuration={setDuration}
           setLoading={setLoading}
           setError={setError}
-        />
+        />}
 
         {/* =====================
             AUTO ZOOM
         ====================== */}
 
-        <MapViewUpdater
+        {hasRoute && <MapViewUpdater
           pickup={pickup}
           destination={destination}
-        />
+        />}
 
         {/* =====================
             CONTROLS
@@ -462,6 +467,7 @@ export default function RealMap({
         <MapControls
           currentLocation={currentLocation}
         />
+        <MapResizer />
       </MapContainer>
 
       {/* =========================
@@ -482,7 +488,11 @@ export default function RealMap({
           boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
         }}
       >
-        <div
+        {!hasRoute ? (
+          <p className="text-sm font-medium text-[#514665]">Enter a pickup and destination to preview your route.</p>
+        ) : (
+        <>
+          <div
           style={{
             display: "flex",
             alignItems: "center",
@@ -511,13 +521,9 @@ export default function RealMap({
                 whiteSpace: "nowrap",
               }}
             >
-              {pickupLocation
-                ? pickupLocation.name.split(",")[0]
-                : "Pickup"}{" "}
+              <span title={pickupLocation.name}>{formatPlace(pickupLocation.name)}</span>{" "}
               →{" "}
-              {destinationLocation
-                ? destinationLocation.name.split(",")[0]
-                : "Destination"}
+              <span title={destinationLocation.name}>{formatPlace(destinationLocation.name)}</span>
             </div>
           </div>
 
@@ -552,18 +558,20 @@ export default function RealMap({
                 : "--"}
             </span>
           </div>
-        </div>
-
-        {error && (
-          <div
-            style={{
-              marginTop: "8px",
-              fontSize: "12px",
-              color: "#dc2626",
-            }}
-          >
-            {error}
           </div>
+
+          {error && (
+            <div
+              style={{
+                marginTop: "8px",
+                fontSize: "12px",
+                color: "#dc2626",
+              }}
+            >
+              {error}
+            </div>
+          )}
+        </>
         )}
       </div>
     </div>

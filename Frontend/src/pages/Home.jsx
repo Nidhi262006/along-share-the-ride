@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Clock3, Leaf, Search, Users, WalletCards } from "lucide-react";
+import { ArrowRight, Clock3, Search, Users, WalletCards } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import PassengerHero from "../components/dashboard/PassengerHero.jsx";
 import RideResultCard from "../components/dashboard/RideResultCard.jsx";
 import RealMap from "../components/RealMap.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { createBooking, listMyBookings, searchRides } from "../services/rideService.js";
+import { formatPlace, getGreeting } from "../utils/display.js";
 
 const tabs = ["Recommended", "Fastest", "Cheapest"];
 const quickActions = [
   { label: "Find a ride", icon: Search, to: "/find-ride" },
+  { label: "Request a ride", icon: Search, to: "/ride-request" },
   { label: "My bookings", icon: Users, to: "/my-rides" },
   { label: "Messages", icon: Clock3, to: "/messages" },
   { label: "Wallet", icon: WalletCards, to: "/wallet" },
@@ -22,10 +24,6 @@ function formatPaise(paise) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(paise / 100);
-}
-
-function locationFor(point) {
-  return point ? { name: point.address, latitude: point.lat, longitude: point.lng } : null;
 }
 
 export default function Home() {
@@ -130,8 +128,8 @@ export default function Home() {
         <div className="min-w-0">
           <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="along-kicker">A seat with your name on it</p>
-              <h2 className="along-title mt-2 text-3xl sm:text-4xl">Find your next ride.</h2>
+              <p className="along-kicker">Passenger dashboard</p>
+              <h2 className="along-title mt-2 text-3xl sm:text-4xl">Available rides</h2>
             </div>
             <Link to="/find-ride" className="inline-flex items-center gap-2 text-sm font-medium text-[#514665] hover:text-[#241c33]">
               Explore all rides <ArrowRight size={15} />
@@ -167,11 +165,11 @@ export default function Home() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="along-kicker">Ride details</p>
-                  <h3 className="mt-2 text-lg font-semibold text-[#241c33]">{selectedRide.pickup.address} → {selectedRide.destination.address}</h3>
+                  <h3 title={`${selectedRide.pickup.address} → ${selectedRide.destination.address}`} className="mt-2 line-clamp-2 text-lg font-semibold text-[#241c33]">{formatPlace(selectedRide.pickup.address)} → {formatPlace(selectedRide.destination.address)}</h3>
                 </div>
                 <p className="text-sm font-semibold text-[#241c33]">₹{selectedFare} <span className="font-normal text-[#8a8498]">/ seat</span></p>
               </div>
-              <p className="mt-2 text-sm text-[#6f687c]">{selectedRide.driver?.name || "RouteMate driver"} · {new Date(selectedRide.departureTime).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · {selectedRide.seatsAvailable} seats left</p>
+              <p className="mt-2 text-sm text-[#6f687c]">{selectedRide.driver?.name || "along driver"} · {new Date(selectedRide.departureTime).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · {selectedRide.seatsAvailable} seats left</p>
               {bookingNotice && <p role="status" className="mt-4 rounded-xl bg-sage/15 px-3 py-2 text-sm text-sage">{bookingNotice} <Link to="/my-rides" className="font-semibold underline">View My rides</Link>.</p>}
               {bookingError && <p role="alert" className="mt-4 rounded-xl bg-coral/10 px-3 py-2 text-sm text-coral">{bookingError}</p>}
               {selectedRideIsOwn ? <p className="mt-4 text-sm text-coral">You can&apos;t book your own ride.</p> : alreadyBooked && !bookingNotice ? <p className="mt-4 text-sm text-sage">You already have an active booking for this ride.</p> : (
@@ -188,20 +186,19 @@ export default function Home() {
         </div>
 
         <aside className="space-y-5">
-          <div className="overflow-hidden rounded-[22px] border border-[#e7e0ed] bg-white">
+          <div className="rounded-[22px] border border-[#e7e0ed] bg-white">
             <div className="flex items-center justify-between px-5 pb-3 pt-5">
-              <div><p className="along-kicker">Your route</p><h2 className="mt-1 text-base font-semibold text-[#241c33]">See the way ahead</h2></div>
-              <Leaf size={18} className="text-[#7655a4]" />
+              <div><p className="along-kicker">Your route</p><h2 className="mt-1 text-base font-semibold text-[#241c33]">Route overview</h2></div>
             </div>
-            <div className="h-[270px]">
-              <RealMap city={user?.serviceCity} pickupLocation={locationFor(selectedRide?.pickup)} destinationLocation={locationFor(selectedRide?.destination)} />
+            <div className="h-[320px]">
+              <RealMap city={user?.serviceCity} />
             </div>
           </div>
 
           <div className="rounded-[22px] bg-[#f4f0f8] p-5">
-            <p className="along-kicker">A smaller footprint</p>
-            <h2 className="mt-2 font-display text-2xl text-[#241c33]">One road.<br /><span className="italic">More possibility.</span></h2>
-            <p className="mt-3 text-sm leading-6 text-[#81788f]">Sharing a ride means fewer cars on the road. A small choice that goes a long way.</p>
+            <p className="along-kicker">Ride sharing</p>
+            <h2 className="mt-2 font-display text-2xl text-[#241c33]">Share a route</h2>
+            <p className="mt-3 text-sm leading-6 text-[#81788f]">Search available rides or submit a ride request.</p>
             <Link to="/safety" className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-[#514665]">Why we share <ArrowRight size={14} /></Link>
           </div>
         </aside>
@@ -209,7 +206,7 @@ export default function Home() {
 
       <section className="mx-auto mt-10 grid max-w-[1320px] gap-5 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:px-8">
         <div className="rounded-[22px] border border-[#e7e0ed] bg-white p-5 sm:p-6">
-          <p className="along-kicker">Your RouteMate</p>
+          <p className="along-kicker">Quick links</p>
           <h2 className="mt-2 text-lg font-semibold text-[#241c33]">Quick links</h2>
           <div className="mt-4 grid grid-cols-2 gap-3">
             {quickActions.map(({ label, icon: Icon, to }) => (
@@ -221,7 +218,7 @@ export default function Home() {
         </div>
         <div className="rounded-[22px] border border-[#e7e0ed] bg-white p-5 sm:p-6">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <div><p className="along-kicker">Good to see you again</p><h2 className="mt-2 text-lg font-semibold text-[#241c33]">Recent bookings</h2></div>
+            <div><p className="along-kicker">{getGreeting()}, {user?.name?.split(/\s+/)[0] || "there"}</p><h2 className="mt-2 text-lg font-semibold text-[#241c33]">Recent bookings</h2></div>
             <Link to="/my-rides" className="text-xs font-medium text-[#514665] hover:underline">View all</Link>
           </div>
           {rideHistory.length === 0 ? <p className="py-5 text-sm text-[#8a8498]">Your bookings will appear here.</p> : (
@@ -230,7 +227,7 @@ export default function Home() {
                 <div key={booking._id} className="flex items-center gap-3 py-3 first:pt-1 last:pb-0">
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ece6f3] text-xs font-semibold text-[#6d4ea3]">{booking.ride?.driver?.name?.split(/\s+/).map((part) => part[0]).join("").slice(0, 2) || "RM"}</span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-[#241c33]">{booking.ride?.pickup?.address} → {booking.ride?.destination?.address}</p>
+                    <p title={`${booking.ride?.pickup?.address || ""} → ${booking.ride?.destination?.address || ""}`} className="truncate text-sm font-medium text-[#241c33]">{formatPlace(booking.ride?.pickup?.address)} → {formatPlace(booking.ride?.destination?.address)}</p>
                     <p className="mt-1 flex items-center gap-1 text-xs text-[#8a8498]"><Clock3 size={11} />{booking.ride?.departureTime ? new Date(booking.ride.departureTime).toLocaleDateString() : "Date unavailable"}</p>
                   </div>
                   <div className="text-right">
@@ -246,8 +243,8 @@ export default function Home() {
 
       <section className="mx-auto mt-12 max-w-[1320px] px-4 sm:px-6 lg:px-8">
         <div className="grid gap-6 rounded-[22px] bg-[#f4f0f8] p-7 sm:p-9 md:grid-cols-2 md:items-center">
-          <div><p className="along-kicker text-[#2a2438]">The road is for everyone</p><h2 className="mt-3 font-display text-3xl leading-tight text-[#241c33]">A journey shared.<br /><span className="italic">A day made better.</span></h2></div>
-          <div><p className="text-sm leading-7 text-[#81788f]">For the early birds, weekend wanderers, and familiar faces on your daily commute. RouteMate brings people heading the same way a little closer together.</p><p className="mt-4 flex items-center gap-2 text-sm text-[#514665]"><Leaf size={17} /> Fewer cars, more possibilities.</p></div>
+        <div><p className="along-kicker text-[#2a2438]">Ride options</p><h2 className="mt-3 font-display text-3xl leading-tight text-[#241c33]">Browse rides and requests</h2></div>
+        <div><p className="text-sm leading-7 text-[#81788f]">Browse upcoming rides, book a seat, or request a ride if you do not find a match.</p></div>
         </div>
       </section>
     </div>

@@ -60,7 +60,7 @@ async function start() {
   try {
     await mongoose.connect(uri);
     await provisionAdmin();
-    app.listen(PORT, () => console.log(`RouteMate API listening on port ${PORT}`));
+    app.listen(PORT, () => console.log(`along API listening on port ${PORT}`));
   } catch (error) {
     const details = { name: error?.name || "Error" };
     if (Number.isInteger(error?.code)) details.code = error.code;
