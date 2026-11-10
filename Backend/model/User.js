@@ -23,6 +23,9 @@ const userSchema = new mongoose.Schema({
     index: true,
   },
   driverRejectionReason: { type: String, trim: true, maxlength: 1000, default: "" },
+  driverVerificationSubmittedAt: { type: Date, default: null },
+  driverVerificationReviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  driverVerificationReviewedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);

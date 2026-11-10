@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const { rateLimit } = require("express-rate-limit");
 const User = require("../model/User");
 const { TOKEN_COOKIE, requireAuth, requireRole } = require("../middleware/auth");
+const { isConfiguredAdminEmail } = require("../services/adminIdentity");
 
 const router = express.Router();
 const SESSION_DURATION_MS = 8 * 60 * 60 * 1000;
@@ -26,9 +27,7 @@ function publicUser(user) {
     modes: user.modes?.length ? user.modes : user.role === "admin" ? [] : [user.role],
     serviceCity: user.serviceCity || null,
     isVerified: user.isVerified,
-    driverVerificationStatus: user.isVerified && user.driverVerificationStatus === "not_submitted"
-      ? "approved"
-      : user.driverVerificationStatus || (user.isVerified ? "approved" : "not_submitted"),
+    driverVerificationStatus: user.driverVerificationStatus || "not_submitted",
     driverRejectionReason: user.driverRejectionReason || "",
   };
 }
@@ -70,6 +69,9 @@ router.post("/signup", credentialLimiter, async (req, res, next) => {
   if (password.length < 8 || Buffer.byteLength(password, "utf8") > 72) {
     return res.status(400).json({ message: "Password must be at least 8 characters and no more than 72 UTF-8 bytes" });
   }
+  if (isConfiguredAdminEmail(email)) {
+    return res.status(409).json({ message: "This email is reserved for the existing administrator account" });
+  }
 
   try {
     if (await User.exists({ email })) {
@@ -105,6 +107,17 @@ router.post("/login", credentialLimiter, async (req, res, next) => {
       return res.status(401).json({ message: "Invalid email or password" });
     }
     if (user.isSuspended) return res.status(403).json({ message: "This account has been suspended" });
+
+    if (isConfiguredAdminEmail(user.email)) {
+      if (user.role !== "admin" || user.modes?.length) {
+        user.role = "admin";
+        user.modes = [];
+        await user.save();
+      }
+    } else if (user.role === "admin") {
+      user.role = "passenger";
+      await user.save();
+    }
 
     setSessionCookie(res, user);
     return res.json({ user: publicUser(user) });

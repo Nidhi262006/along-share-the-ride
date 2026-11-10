@@ -107,10 +107,10 @@ router.get("/drivers/applications", async (_req, res, next) => {
         { $or: [{ driverVerificationStatus: { $in: ["pending", "approved", "rejected"] } }, { isVerified: true }] },
       ],
     })
-      .select("name email serviceCity driverProfile driverVerificationStatus driverRejectionReason isSuspended createdAt updatedAt")
+      .select("name email serviceCity driverProfile driverVerificationStatus driverRejectionReason driverVerificationSubmittedAt driverVerificationReviewedBy driverVerificationReviewedAt isSuspended createdAt updatedAt")
       .sort({ updatedAt: -1 });
     const applications = await Promise.all(users.map(async (user) => ({
-      user,
+      user: await user.populate("driverVerificationReviewedBy", "name email"),
       documents: await DriverDocument.find({ driver: user._id }).select("type originalName contentType revision status rejectionReason createdAt").sort({ type: 1, revision: -1 }),
     })));
     return res.json({ applications });
@@ -126,7 +126,7 @@ router.get("/drivers/:driverId/documents/:documentId", async (req, res, next) =>
     if (!document?.fileData) return res.status(404).json({ message: "Document not found" });
     res.set({
       "Content-Type": document.contentType,
-      "Content-Disposition": "attachment; filename=driver-document",
+      "Content-Disposition": "inline; filename=driver-document",
       "Cache-Control": "private, no-store",
       "X-Content-Type-Options": "nosniff",
     });
@@ -161,6 +161,8 @@ router.patch("/drivers/:driverId/verification", async (req, res, next) => {
     driver.driverVerificationStatus = status;
     driver.driverRejectionReason = status === "rejected" ? rejectionReason.trim() : "";
     driver.isVerified = status === "approved";
+    driver.driverVerificationReviewedBy = req.user._id;
+    driver.driverVerificationReviewedAt = new Date();
     await driver.save();
     await DriverDocument.updateMany(
       { driver: driver._id, status: "pending" },
@@ -171,7 +173,7 @@ router.patch("/drivers/:driverId/verification", async (req, res, next) => {
       recipient: driver._id,
       eventType: status === "approved" ? "driver_verification_approved" : "driver_verification_rejected",
       title: status === "approved" ? "Driver verification approved" : "Driver verification needs changes",
-      message: status === "approved" ? "Your driver application was approved. You can now post rides." : driver.driverRejectionReason,
+      message: status === "approved" ? "Your driver application was approved. You can now post rides." : `Your application was rejected: ${driver.driverRejectionReason}`.slice(0, 300),
       dedupeKey: `driver_verification:${driver._id}:${driver.updatedAt.getTime()}`,
     }]);
     await audit(req, `driver_verification_${status}`, "driver_application", driver._id, { rejectionReason: driver.driverRejectionReason });

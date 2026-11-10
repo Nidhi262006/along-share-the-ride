@@ -1,22 +1,19 @@
-const bcrypt = require("bcryptjs");
 const User = require("../model/User");
+const { normalizeAdminEmail } = require("./adminIdentity");
 
 async function provisionAdmin() {
-  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const password = process.env.ADMIN_PASSWORD;
-  if (!email && !password) return;
-  if (!email || !password || password.length < 16) {
-    throw new Error("ADMIN_EMAIL and an ADMIN_PASSWORD of at least 16 characters are required together");
+  const email = normalizeAdminEmail();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+    throw new Error("ADMIN_EMAIL must be configured as a valid email address");
   }
-
   const existing = await User.findOne({ email });
-  if (existing) {
-    if (existing.role !== "admin") throw new Error("ADMIN_EMAIL belongs to a non-admin account; provision the admin deliberately in MongoDB");
-    return;
-  }
+  if (!existing) throw new Error("ADMIN_EMAIL must match an existing account; create and verify that account before starting the backend");
 
-  const passwordHash = await bcrypt.hash(password, 12);
-  await User.create({ name: "along Administrator", email, passwordHash, role: "admin", serviceCity: null });
+  await User.updateOne({ _id: existing._id }, { $set: { role: "admin", modes: [] } });
+  await User.updateMany(
+    { role: "admin", _id: { $ne: existing._id } },
+    { $set: { role: "passenger" } }
+  );
 }
 
 module.exports = { provisionAdmin };

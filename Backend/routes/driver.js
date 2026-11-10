@@ -47,10 +47,10 @@ router.get("/application", async (req, res, next) => {
     const documents = await DriverDocument.find({ driver: req.user._id }).sort({ type: 1, revision: -1 });
     return res.json({
       profile: req.user.driverProfile || {},
-      status: req.user.isVerified && req.user.driverVerificationStatus === "not_submitted"
-        ? "approved"
-        : req.user.driverVerificationStatus || (req.user.isVerified ? "approved" : "not_submitted"),
+      status: req.user.driverVerificationStatus || "not_submitted",
       rejectionReason: req.user.driverRejectionReason || "",
+      submittedAt: req.user.driverVerificationSubmittedAt || null,
+      reviewedAt: req.user.driverVerificationReviewedAt || null,
       documents: documents.map(publicDocument),
     });
   } catch (error) {
@@ -62,13 +62,16 @@ router.patch("/application", async (req, res, next) => {
   const { fields, error } = validProfile(req.body?.profile);
   if (error) return res.status(400).json({ message: error });
   try {
-    const wasApproved = req.user.driverVerificationStatus === "approved" || req.user.isVerified;
+    const wasApproved = req.user.driverVerificationStatus === "approved";
     const detailsChanged = Object.keys(fields).some((field) => fields[field] !== req.user.driverProfile?.[field]);
     req.user.driverProfile = fields;
     if (wasApproved && detailsChanged) {
       req.user.driverVerificationStatus = "pending";
       req.user.driverRejectionReason = "";
       req.user.isVerified = false;
+      req.user.driverVerificationSubmittedAt = new Date();
+      req.user.driverVerificationReviewedBy = null;
+      req.user.driverVerificationReviewedAt = null;
     }
     await req.user.save();
     if (wasApproved && detailsChanged) {
@@ -83,6 +86,7 @@ router.patch("/application", async (req, res, next) => {
 
 router.put("/application/documents/:type", express.raw({ type: DOCUMENT_MIME_TYPES, limit: "5mb" }), async (req, res, next) => {
   if (!DOCUMENT_TYPES.includes(req.params.type)) return res.status(400).json({ message: "Unsupported document type" });
+  if (req.user.driverVerificationStatus === "pending") return res.status(409).json({ message: "Your application is under review. Wait for the decision before replacing documents." });
   const contentType = req.headers["content-type"]?.split(";")[0];
   if (!DOCUMENT_MIME_TYPES.includes(contentType) || !Buffer.isBuffer(req.body) || !req.body.length) {
     return res.status(400).json({ message: "Upload a JPG, PNG, or PDF document" });
@@ -112,10 +116,13 @@ router.put("/application/documents/:type", express.raw({ type: DOCUMENT_MIME_TYP
       revisionKey: `${req.user._id}:${req.params.type}:${(previous?.revision || 0) + 1}`,
       status: "pending",
     });
-    if (req.user.driverVerificationStatus === "approved" || req.user.isVerified) {
+    if (req.user.driverVerificationStatus === "approved") {
       req.user.driverVerificationStatus = "pending";
       req.user.driverRejectionReason = "";
       req.user.isVerified = false;
+      req.user.driverVerificationSubmittedAt = new Date();
+      req.user.driverVerificationReviewedBy = null;
+      req.user.driverVerificationReviewedAt = null;
       await req.user.save();
       await markDocumentsPending(req.user._id);
       await cancelDriverFutureRides(req.user._id);
@@ -143,6 +150,9 @@ router.post("/application/submit", async (req, res, next) => {
     req.user.driverVerificationStatus = "pending";
     req.user.driverRejectionReason = "";
     req.user.isVerified = false;
+    req.user.driverVerificationSubmittedAt = new Date();
+    req.user.driverVerificationReviewedBy = null;
+    req.user.driverVerificationReviewedAt = null;
     await req.user.save();
     await markDocumentsPending(req.user._id);
     return res.json({ status: req.user.driverVerificationStatus, message: "Driver application submitted for review" });

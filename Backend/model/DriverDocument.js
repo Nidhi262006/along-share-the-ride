@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const driverDocumentSchema = new mongoose.Schema({
   driver: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   type: { type: String, enum: ["license", "government_id", "vehicle_rc"], required: true },
-  fileUrl: { type: String },
+  fileUrl: { type: String, select: false },
   fileData: { type: Buffer, select: false },
   contentType: { type: String, enum: ["image/jpeg", "image/png", "application/pdf"] },
   originalName: { type: String, trim: true, maxlength: 200 },

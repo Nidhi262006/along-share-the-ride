@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../model/User");
+const { isConfiguredAdminEmail } = require("../services/adminIdentity");
 
 const TOKEN_COOKIE = "routemate_token";
 
@@ -17,7 +18,7 @@ async function requireAuth(req, res, next) {
   }
 
   try {
-    const user = await User.findById(payload.sub).select("name email role modes isVerified isSuspended serviceCity driverProfile driverVerificationStatus driverRejectionReason");
+    const user = await User.findById(payload.sub).select("name email role modes isVerified isSuspended serviceCity driverProfile driverVerificationStatus driverRejectionReason driverVerificationSubmittedAt driverVerificationReviewedBy driverVerificationReviewedAt");
     if (!user) {
       return res.status(401).json({ message: "Your session is invalid or has expired" });
     }
@@ -30,13 +31,15 @@ async function requireAuth(req, res, next) {
 }
 
 function requireAdmin(req, res, next) {
-  if (req.user?.role !== "admin") return res.status(403).json({ message: "Administrator access is required" });
+  if (req.user?.role !== "admin" || !isConfiguredAdminEmail(req.user.email)) {
+    return res.status(403).json({ message: "Administrator access is required" });
+  }
   return next();
 }
 
 function requireApprovedDriver(req, res, next) {
   if (req.user?.role !== "driver") return res.status(403).json({ message: "Driver access is required" });
-  if (req.user.driverVerificationStatus !== "approved" && !(req.user.driverVerificationStatus === "not_submitted" && req.user.isVerified)) {
+  if (req.user.driverVerificationStatus !== "approved") {
     return res.status(403).json({ message: "Driver verification approval is required before posting rides" });
   }
   return next();

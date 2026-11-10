@@ -457,7 +457,7 @@ router.post("/:rideId/bookings", requireRole("passenger"), async (req, res, next
     const eligibleDriver = await User.exists({
       _id: candidate.driver,
       isSuspended: { $ne: true },
-      $or: [{ driverVerificationStatus: "approved" }, { driverVerificationStatus: "not_submitted", isVerified: true }],
+      driverVerificationStatus: "approved",
     });
     if (!eligibleDriver) return res.status(409).json({ message: "This driver is not currently eligible for bookings" });
     if (req.body?.expectedUpdatedAt !== undefined) {
@@ -770,7 +770,7 @@ router.get("/", requireRole("passenger"), async (req, res, next) => {
         path: "driver",
         match: {
           isSuspended: { $ne: true },
-          $or: [{ driverVerificationStatus: "approved" }, { driverVerificationStatus: "not_submitted", isVerified: true }],
+          driverVerificationStatus: "approved",
         },
         select: "name isVerified driverVerificationStatus",
       })

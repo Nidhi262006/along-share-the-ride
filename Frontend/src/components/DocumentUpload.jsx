@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { FileText, Upload, X } from "lucide-react";
 
-export default function DocumentUpload({ label, hint, file, onSelect, onRemove, accept = "image/*,.pdf" }) {
+export default function DocumentUpload({ label, hint, file, onSelect, onRemove, accept = "image/*,.pdf", disabled = false }) {
   const inputRef = useRef(null);
 
   const handleFiles = (fileList) => {
@@ -19,7 +19,7 @@ export default function DocumentUpload({ label, hint, file, onSelect, onRemove, 
         </div>
         {file && (
           <span className="shrink-0 text-[11px] font-medium px-2.5 py-1 rounded-full bg-gold/15 text-gold">
-            Pending review
+            {file.status ? file.status.replaceAll("_", " ") : "Pending review"}
           </span>
         )}
       </div>
@@ -27,8 +27,9 @@ export default function DocumentUpload({ label, hint, file, onSelect, onRemove, 
       {!file ? (
         <button
           type="button"
+          disabled={disabled}
           onClick={() => inputRef.current?.click()}
-          className="w-full mt-4 border-2 border-dashed border-cardBorder rounded-xl py-6 sm:py-8 flex flex-col items-center justify-center gap-2 text-inkMuted hover:border-rose hover:text-rose transition"
+          className="w-full mt-4 border-2 border-dashed border-cardBorder rounded-xl py-6 sm:py-8 flex flex-col items-center justify-center gap-2 text-inkMuted hover:border-rose hover:text-rose transition disabled:opacity-50"
         >
           <Upload size={20} />
           <span className="text-xs font-medium">Tap to upload</span>
@@ -44,7 +45,7 @@ export default function DocumentUpload({ label, hint, file, onSelect, onRemove, 
             </div>
           )}
           <p className="flex-1 min-w-0 text-xs text-ink truncate">{file.name || file.originalName}</p>
-          <button type="button" onClick={() => inputRef.current?.click()} className="text-xs text-rose font-medium shrink-0">
+          <button type="button" disabled={disabled} onClick={() => inputRef.current?.click()} className="text-xs text-rose font-medium shrink-0 disabled:opacity-50">
             Replace
           </button>
           {onRemove && <button type="button" onClick={onRemove} className="w-8 h-8 rounded-lg border border-cardBorder flex items-center justify-center text-inkMuted hover:text-coral shrink-0">
@@ -53,7 +54,7 @@ export default function DocumentUpload({ label, hint, file, onSelect, onRemove, 
         </div>
       )}
 
-      <input ref={inputRef} type="file" accept={accept} onChange={(e) => handleFiles(e.target.files)} className="hidden" />
+      <input ref={inputRef} type="file" accept={accept} disabled={disabled} onChange={(e) => handleFiles(e.target.files)} className="hidden" />
     </div>
   );
 }

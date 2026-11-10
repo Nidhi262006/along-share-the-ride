@@ -106,7 +106,7 @@ export default function DriverVerification() {
         </form>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {REQUIRED_DOCS.map((document) => <div key={document.key}>
-            <DocumentUpload label={document.label} hint={document.hint} file={docs[document.key]} onSelect={(file) => uploadDocument(document.key, file)} accept="image/jpeg,image/png,application/pdf" />
+            <DocumentUpload label={document.label} hint={document.hint} file={docs[document.key]} onSelect={(file) => uploadDocument(document.key, file)} accept="image/jpeg,image/png,application/pdf" disabled={busy || status === "pending"} />
             {docs[document.key]?.status && <p className="mt-1 text-xs text-inkMuted">Document status: {docs[document.key].status}{docs[document.key].rejectionReason ? ` · ${docs[document.key].rejectionReason}` : ""}</p>}
           </div>)}
         </div>
