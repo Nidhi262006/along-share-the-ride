@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { MapPin, Calendar, ArrowDownUp, LocateFixed } from "lucide-react";
-import RideCard from "../components/RideCard.jsx";
+import { ArrowDownUp, Calendar, Leaf, LocateFixed, MapPin, SlidersHorizontal } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import RideResultCard from "../components/dashboard/RideResultCard.jsx";
 import RealMap from "../components/RealMap.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getCurrentLocation, searchLocation } from "../services/locationService.js";
@@ -22,14 +23,18 @@ function localDateTime(value) {
 }
 
 export default function FindRide() {
+  const location = useLocation();
   const { user } = useAuth();
-  const cityLabel = user?.serviceCity === "bengaluru" ? "Bengaluru" : "Nagpur";
-  const [tripType, setTripType] = useState("One Way");
-  const [form, setForm] = useState({ pickup: "", destination: "", departureTime: "" });
+  const cityLabel = user?.serviceCity === "bengaluru" ? "Bengaluru" : user?.serviceCity === "nagpur" ? "Nagpur" : "your selected city";
+  const [form, setForm] = useState(() => ({
+    pickup: location.state?.search?.pickup || "",
+    destination: location.state?.search?.destination || "",
+    departureTime: location.state?.search?.departureTime || "",
+  }));
   const [pickupPoint, setPickupPoint] = useState(null);
   const [destinationPoint, setDestinationPoint] = useState(null);
   const [sort, setSort] = useState("departure");
-  const [requestedSeats, setRequestedSeats] = useState(1);
+  const [requestedSeats, setRequestedSeats] = useState(location.state?.search?.seats || 1);
   const [rides, setRides] = useState([]);
   const [matching, setMatching] = useState(null);
   const [selectedRide, setSelectedRide] = useState(null);
@@ -189,146 +194,133 @@ export default function FindRide() {
   const mapLocation = (point) => point ? { name: point.address, latitude: point.lat, longitude: point.lng } : null;
 
   return (
-    <div className="p-6 md:p-8 max-w-3xl mx-auto">
-      <h1 className="font-heading text-2xl font-semibold text-ink mb-6">Book a ride</h1>
-
-      <form onSubmit={askAssistant} className="bg-white border border-cardBorder rounded-xl p-4 mb-5">
-        <label className="block text-sm font-medium text-ink">Ride assistant
-          <textarea value={assistantText} onChange={(event) => setAssistantText(event.target.value)} maxLength={1500} rows={2} placeholder="Describe your route, time and number of seats" className="mt-2 w-full rounded-lg bg-cream px-3 py-2.5 text-sm outline-none resize-y" />
-        </label>
-        <button type="submit" disabled={assistantBusy || !assistantText.trim()} className="mt-2 rounded-lg bg-plum px-4 py-2 text-sm text-white disabled:opacity-60">{assistantBusy ? "Understanding request..." : "Find rides from request"}</button>
-        {assistantMessage && <p role="status" className="mt-2 text-sm text-inkMuted">{assistantMessage}</p>}
-      </form>
-
-      <div className="bg-card border border-cardBorder rounded-xl p-5 mb-6">
-        <div className="flex gap-2 mb-4">
-          {["One Way", "Round Trip"].map((type) => (
-            <button
-              key={type}
-              onClick={() => setTripType(type)}
-              className={`px-3 py-1.5 rounded-lg text-sm ${
-                tripType === type
-                  ? "bg-rose text-plumText font-medium"
-                  : "bg-cream text-inkMuted"
-              }`}
-            >
-              {type}
-            </button>
-          ))}
+    <div className="min-h-full bg-[#fbf9fd] pb-14">
+      <section className="mx-auto max-w-[1320px] px-4 pb-6 pt-8 sm:px-6 lg:px-8 lg:pt-10">
+        <p className="along-kicker">A seat with your name on it</p>
+        <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
+          <div><h1 className="along-title text-3xl sm:text-4xl">Find your next ride.</h1><p className="mt-2 text-sm text-[#8a8498]">A better way to get where you&apos;re going in {cityLabel}.</p></div>
+          <span className="rounded-full border border-[#e7e0ed] px-3 py-1.5 text-[11px] text-[#8a8498]">Live RouteMate rides</span>
         </div>
+        {!user?.serviceCity && <p role="status" className="mt-3 text-sm text-[#6f687c]">Select your service city from the account menu before searching for rides.</p>}
+      </section>
 
-        <form onSubmit={search} className="flex flex-col gap-3">
-          <label className="flex items-center gap-3 bg-cream rounded-lg px-3 py-2.5">
-            <MapPin size={16} className="text-inkMuted shrink-0" />
-            <div className="flex-1">
-              <p className="text-xs text-inkMuted">From</p>
-              <div className="flex items-center gap-2">
-                <input
-                  value={form.pickup}
-                  onChange={(event) => { setForm({ ...form, pickup: event.target.value }); setPickupPoint(null); }}
-                  placeholder={`Pickup in ${cityLabel}`}
-                  maxLength={200}
-                  aria-label="Pickup location"
-                  className="bg-transparent text-sm outline-none w-full text-ink"
-                />
-                <button type="button" onClick={() => useGps("pickup")} title="Use current location for pickup" aria-label="Use current location for pickup" className="shrink-0 text-inkMuted hover:text-ink"><LocateFixed size={16} /></button>
-              </div>
+      <div className="mx-auto grid max-w-[1320px] items-start gap-8 px-4 sm:px-6 lg:grid-cols-[268px_minmax(0,1fr)] lg:px-8">
+        <aside className="space-y-5 lg:sticky lg:top-24">
+          <section className="rounded-[20px] border-r border-[#e7e0ed] bg-transparent p-0 lg:rounded-none lg:border-r lg:pr-7">
+            <div className="mb-4 flex items-center gap-2 text-sm font-medium text-[#514665]"><SlidersHorizontal size={17} /> Make it your kind of ride</div>
+            <p className="mb-4 text-xs leading-5 text-[#8a8498]">A few little things that make<br className="hidden lg:block" /> a big difference.</p>
+            <div className="grid grid-cols-3 gap-2 lg:grid-cols-1">
+              {[
+                { value: "departure", label: "Earliest departure" },
+                { value: "fare", label: "Lowest fare" },
+                { value: "availability", label: "Most seats" },
+              ].map((item) => (
+                <button key={item.value} type="button" aria-pressed={sort === item.value} onClick={() => setSort(item.value)} className={`rounded-xl border px-3 py-3 text-left text-xs transition ${sort === item.value ? "border-[#d3c3e3] bg-[#eee7f5] font-medium text-[#2a2438]" : "border-[#e7e0ed] bg-white text-[#625a70] hover:bg-[#f7f3fa]"}`}>
+                  {item.label}
+                </button>
+              ))}
             </div>
-          </label>
-          <label className="flex items-center gap-3 bg-cream rounded-lg px-3 py-2.5">
-            <MapPin size={16} className="text-inkMuted shrink-0" />
-            <div className="flex-1">
-              <p className="text-xs text-inkMuted">To</p>
-              <div className="flex items-center gap-2">
-                <input
-                  value={form.destination}
-                  onChange={(event) => { setForm({ ...form, destination: event.target.value }); setDestinationPoint(null); }}
-                  placeholder="Destination"
-                  maxLength={200}
-                  aria-label="Destination"
-                  className="bg-transparent text-sm outline-none w-full text-ink"
-                />
-                <button type="button" onClick={() => useGps("destination")} title="Use current location for destination" aria-label="Use current location for destination" className="shrink-0 text-inkMuted hover:text-ink"><LocateFixed size={16} /></button>
-              </div>
-            </div>
-          </label>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label className="flex items-center gap-3 bg-cream rounded-lg px-3 py-2.5">
-              <Calendar size={16} className="text-inkMuted shrink-0" />
-              <input
-                type="datetime-local"
-                value={form.departureTime}
-                onChange={(event) => setForm({ ...form, departureTime: event.target.value })}
-                min={localDateTime()}
-                aria-label="Departure date and time"
-                className="bg-transparent text-sm outline-none w-full text-ink"
-              />
+          </section>
+
+          <form onSubmit={askAssistant} className="rounded-[18px] border border-[#e7e0ed] bg-white p-4">
+            <label className="block text-sm font-medium text-[#514665]">Ride assistant
+              <textarea value={assistantText} onChange={(event) => setAssistantText(event.target.value)} maxLength={1500} rows={3} placeholder="Describe your route, time and seats" className="mt-2 w-full resize-y rounded-xl bg-[#f7f4fa] px-3 py-2.5 text-xs text-[#241c33] outline-none focus:ring-2 focus:ring-[#d8c8e8]" />
             </label>
-            <label className="flex items-center gap-3 bg-cream rounded-lg px-3 py-2.5">
-              <span className="text-xs text-inkMuted shrink-0">Seats</span>
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={requestedSeats}
-                onChange={(event) => setRequestedSeats(Math.max(1, Number(event.target.value) || 1))}
-                aria-label="Requested seats"
-                className="bg-transparent text-sm outline-none w-full text-ink"
-              />
+            <button type="submit" disabled={assistantBusy || !assistantText.trim()} className="mt-3 rounded-xl bg-[#2a2438] px-3 py-2 text-xs font-medium text-white transition hover:bg-[#1c1728] disabled:opacity-60">{assistantBusy ? "Understanding..." : "Search from request"}</button>
+            {assistantMessage && <p role="status" className="mt-3 text-xs leading-5 text-[#6f687c]">{assistantMessage}</p>}
+          </form>
+
+          <div className="rounded-[18px] bg-[#f4f0f8] p-4">
+            <Leaf size={21} className="text-[#81788f]" />
+            <h2 className="mt-3 font-display text-xl text-[#241c33]">One road.<br /><span className="italic">Smaller footprint.</span></h2>
+            <p className="mt-2 text-xs leading-5 text-[#81788f]">Sharing a ride means fewer cars on the road. A small choice that goes a long way.</p>
+          </div>
+        </aside>
+
+        <main className="min-w-0">
+          <form onSubmit={search} className="mb-6 rounded-[20px] border border-[#e7e0ed] bg-white p-3 shadow-[0_12px_35px_rgba(42,36,56,0.05)] sm:p-4">
+            <div className="grid gap-2 lg:grid-cols-[1fr_auto_1fr_0.85fr_0.55fr_auto] lg:items-center">
+              <label className="px-2 py-2">
+                <span className="flex items-center gap-1.5 text-xs text-[#8a8498]"><MapPin size={13} /> Leaving from</span>
+                <span className="mt-1 flex items-center gap-2">
+                  <input value={form.pickup} onChange={(event) => { setForm({ ...form, pickup: event.target.value }); setPickupPoint(null); }} placeholder={cityLabel} maxLength={200} aria-label="Pickup location" className="w-full bg-transparent text-sm font-medium text-[#241c33] outline-none placeholder:font-normal placeholder:text-[#b7b1c2]" />
+                  <button type="button" onClick={() => useGps("pickup")} title="Use current location for pickup" aria-label="Use current location for pickup" className="shrink-0 text-[#8a8498] hover:text-[#241c33]"><LocateFixed size={15} /></button>
+                </span>
+              </label>
+              <span className="mx-auto hidden h-8 w-8 items-center justify-center rounded-full border border-[#ece7f1] text-[#8a8498] lg:flex"><ArrowDownUp size={14} /></span>
+              <label className="border-t border-[#f0ebf4] px-2 py-2 lg:border-l lg:border-t-0">
+                <span className="flex items-center gap-1.5 text-xs text-[#8a8498]"><MapPin size={13} /> Going to</span>
+                <span className="mt-1 flex items-center gap-2">
+                  <input value={form.destination} onChange={(event) => { setForm({ ...form, destination: event.target.value }); setDestinationPoint(null); }} placeholder="Choose destination" maxLength={200} aria-label="Destination" className="w-full bg-transparent text-sm font-medium text-[#241c33] outline-none placeholder:font-normal placeholder:text-[#b7b1c2]" />
+                  <button type="button" onClick={() => useGps("destination")} title="Use current location for destination" aria-label="Use current location for destination" className="shrink-0 text-[#8a8498] hover:text-[#241c33]"><LocateFixed size={15} /></button>
+                </span>
+              </label>
+              <label className="border-t border-[#f0ebf4] px-2 py-2 lg:border-l lg:border-t-0">
+                <span className="flex items-center gap-1.5 text-xs text-[#8a8498]"><Calendar size={13} /> Departure</span>
+                <input type="datetime-local" value={form.departureTime} onChange={(event) => setForm({ ...form, departureTime: event.target.value })} min={localDateTime()} aria-label="Departure date and time" className="mt-1 w-full bg-transparent text-sm font-medium text-[#241c33] outline-none" />
+              </label>
+              <label className="border-t border-[#f0ebf4] px-2 py-2 lg:border-l lg:border-t-0">
+                <span className="text-xs text-[#8a8498]">Passengers</span>
+                <select value={requestedSeats} onChange={(event) => setRequestedSeats(Number(event.target.value))} aria-label="Requested passengers" className="mt-1 w-full bg-transparent text-sm font-medium text-[#241c33] outline-none">
+                  {[1, 2, 3, 4, 5, 6].map((count) => <option key={count} value={count}>{count}</option>)}
+                </select>
+              </label>
+              <button disabled={loading} className="along-button h-12 rounded-xl px-4 text-xs lg:ml-1">{loading ? "Searching..." : "Find a ride"}</button>
+            </div>
+          </form>
+
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-[#241c33]">{loading ? "Finding rides..." : `${rides.length} ${rides.length === 1 ? "ride" : "rides"} · ${form.pickup && form.destination ? `${form.pickup} → ${form.destination}` : `Available in ${cityLabel}`}`}</h2>
+              <p className="mt-1 text-xs text-[#8a8498]">{form.departureTime ? new Date(form.departureTime).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" }) : "Choose a route and departure time"}</p>
+            </div>
+            <label className="flex items-center gap-2 text-xs text-[#8a8498]"><ArrowDownUp size={14} />
+              <select value={sort} onChange={(event) => setSort(event.target.value)} className="bg-transparent text-[#514665] outline-none">
+                <option value="departure">Earliest departure</option><option value="fare">Lowest fare</option><option value="availability">Most seats</option>
+              </select>
             </label>
           </div>
+          {!loading && matching?.method === "road-route-estimate" && matching.available && <p className="mb-3 text-xs text-[#8a8498]">Ranked by road-route fit. Detour limits use OSRM duration estimates (up to {matching.maxDetourMinutes} minutes).</p>}
+          {!loading && matching?.available === false && <p role="status" className="mb-3 rounded-xl bg-coral/10 px-3 py-2 text-sm text-coral">Route checks are incomplete because the road-routing service did not return usable data for {matching.unavailableRoutes} ride{matching.unavailableRoutes === 1 ? "" : "s"}. Results may be incomplete.</p>}
+          {!loading && matching?.method === "not-applied" && <p className="mb-3 text-xs text-[#8a8498]">Enter both locations to see rides ranked by road-route fit.</p>}
+          {notice && <p role="status" className="mb-3 rounded-xl bg-sage/15 px-3 py-2 text-sm text-sage">{notice}</p>}
+          {error && <p role="alert" className="mb-3 rounded-xl bg-coral/10 px-3 py-2 text-sm text-coral">{error}</p>}
 
-          <button disabled={loading} className="w-full mt-1 bg-rose text-plumText font-medium text-sm rounded-lg py-2.5 hover:bg-roseBright transition-colors disabled:opacity-60">
-            {loading ? "Searching..." : "Search rides"}
-          </button>
-        </form>
-      </div>
+          <div className="space-y-3">
+            {!loading && !error && matching?.available !== false && rides.length === 0 && <div className="rounded-2xl bg-[#f4f0f8] px-5 py-10 text-center text-sm text-[#8a8498]">No available rides match your search in {cityLabel}. Try a different date or route.</div>}
+            {rides.map((ride) => (
+              <RideResultCard
+                key={ride._id}
+                ride={ride}
+                selected={selectedRide?._id === ride._id}
+                onSelect={() => { setNotice(""); setBookingRequestId(null); setSeats(Math.max(1, Math.min(requestedSeats, ride.seatsAvailable))); setSelectedRide(selectedRide?._id === ride._id ? null : ride); }}
+              />
+            ))}
+          </div>
 
-      <div className="flex items-center justify-between gap-3 mb-3">
-        <h2 className="text-sm text-inkMuted">{loading ? "Searching rides..." : `${rides.length} ${rides.length === 1 ? "ride" : "rides"} found`}</h2>
-        <label className="flex items-center gap-2 text-xs text-inkMuted">
-          <ArrowDownUp size={14} />
-          <select value={sort} onChange={(event) => setSort(event.target.value)} className="bg-transparent text-ink outline-none">
-            <option value="departure">Departure time</option>
-            <option value="fare">Lowest fare</option>
-            <option value="availability">Most seats</option>
-          </select>
-        </label>
+          {selectedRide && (
+            <section className="mt-4 rounded-[20px] border border-[#e7e0ed] bg-white p-5" aria-label="Selected ride details">
+              <p className="along-kicker">Ride details</p>
+              <h3 className="mt-2 text-base font-semibold text-[#241c33]">{selectedRide.pickup.address} → {selectedRide.destination.address}</h3>
+              {selectedRideIsOwn && <p className="mt-2 text-sm text-coral">You can&apos;t book your own ride.</p>}
+              <p className="mt-2 text-xs text-[#6f687c]">Pickup: {pickupPoint?.name || selectedRide.pickup.address}</p>
+              <p className="mt-1 text-xs text-[#6f687c]">Drop-off: {destinationPoint?.name || selectedRide.destination.address}</p>
+              {selectedRide.stops?.length > 0 && <p className="mt-1 text-xs text-[#6f687c]">Driver stops: {[...selectedRide.stops].sort((first, second) => first.order - second.order).map((stop) => stop.address).join(" → ")}</p>}
+              <p className="mt-1 text-xs text-[#6f687c]">{departureLabel(selectedRide.departureTime)} · {selectedRide.seatsAvailable} seats remaining</p>
+              {selectedRide.routeMatch && <p className="mt-1 text-xs text-[#6f687c]">OSRM estimated detour: {(selectedRide.routeMatch.detourSeconds / 60).toFixed(1)} min · Combined endpoint map distance from route: {selectedRide.routeMatch.routeDeviationMeters} m</p>}
+              {selectedRide.instructions && <p className="mt-2 text-xs text-[#6f687c]">Driver instructions: {selectedRide.instructions}</p>}
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                <label className="text-xs text-[#8a8498]">Seats
+                  <input type="number" min="1" max={selectedRide.seatsAvailable} value={seats} onChange={(event) => setSeats(Math.max(1, Math.min(selectedRide.seatsAvailable, Number(event.target.value) || 1)))} className="mt-1 block w-24 rounded-lg border border-[#e5deeb] bg-[#fbf9fd] px-3 py-2 text-sm text-[#241c33]" />
+                </label>
+                <p className="text-sm text-[#241c33]">Total <strong>{formatPaise(selectedTotalFarePaise)}</strong><span className="block text-xs text-[#8a8498]">Payment is made offline with the driver.</span></p>
+                <button disabled={booking || selectedRideIsOwn || selectedRide.seatsAvailable < 1} onClick={bookSelectedRide} className="along-button sm:ml-auto rounded-xl px-5 py-2.5 text-xs">{booking ? "Confirming..." : "Confirm booking"}</button>
+              </div>
+            </section>
+          )}
+          {selectedRide && <div className="mt-5 h-72 overflow-hidden rounded-[20px]"><RealMap city={user?.serviceCity} pickupLocation={mapLocation(selectedRide.pickup)} destinationLocation={mapLocation(selectedRide.destination)} /></div>}
+        </main>
       </div>
-      {!loading && matching?.method === "road-route-estimate" && matching.available && <p className="mb-3 text-xs text-inkMuted">Ranked by road-route fit. Detour limits use OSRM duration estimates (up to {matching.maxDetourMinutes} minutes).</p>}
-      {!loading && matching?.available === false && <p role="status" className="mb-3 rounded-lg bg-coral/10 px-3 py-2 text-sm text-coral">Route checks are incomplete because the road-routing service did not return usable data for {matching.unavailableRoutes} ride{matching.unavailableRoutes === 1 ? "" : "s"}. Results may be incomplete.</p>}
-      {!loading && matching?.method === "not-applied" && <p className="mb-3 text-xs text-inkMuted">Enter both locations to see rides ranked by road-route fit.</p>}
-      {notice && <p role="status" className="mb-3 rounded-lg bg-sage/15 px-3 py-2 text-sm text-sage">{notice}</p>}
-      {error && <p role="alert" className="mb-3 rounded-lg bg-coral/10 px-3 py-2 text-sm text-coral">{error}</p>}
-      <div className="flex flex-col gap-3">
-        {!loading && !error && matching?.available !== false && rides.length === 0 && <div className="rounded-xl border border-cardBorder bg-card px-5 py-10 text-center text-sm text-inkMuted">No available rides match your search in {cityLabel}. Try a different date or route.</div>}
-        {rides.map((ride) => (
-          <RideCard
-            key={ride._id}
-            ride={{ ...ride, driver: ride.driver?.name || "RouteMate driver", time: departureLabel(ride.departureTime), price: ride.fare, badges: ride.driver?.isVerified ? ["Verified driver"] : [] }}
-            selected={selectedRide?._id === ride._id}
-            onSelect={() => { setNotice(""); setBookingRequestId(null); setSeats(Math.max(1, Math.min(requestedSeats, ride.seatsAvailable))); setSelectedRide(selectedRide?._id === ride._id ? null : ride); }}
-          />
-        ))}
-      </div>
-      {selectedRide && <section className="mt-4 rounded-xl border border-cardBorder bg-card p-4" aria-label="Selected ride details">
-        <h3 className="text-sm font-semibold text-ink">Ride details</h3>
-        {selectedRideIsOwn && <p className="mt-2 text-sm text-coral">You can&apos;t book your own ride.</p>}
-        <p className="mt-2 text-xs text-inkMuted">Pickup: {pickupPoint?.name || selectedRide.pickup.address}</p>
-        <p className="mt-1 text-xs text-inkMuted">Drop-off: {destinationPoint?.name || selectedRide.destination.address}</p>
-        {selectedRide.stops?.length > 0 && <p className="mt-1 text-xs text-inkMuted">Driver stops: {[...selectedRide.stops].sort((first, second) => first.order - second.order).map((stop) => stop.address).join(" → ")}</p>}
-        <p className="mt-1 text-xs text-inkMuted">{departureLabel(selectedRide.departureTime)} · {selectedRide.seatsAvailable} seats remaining</p>
-        {selectedRide.routeMatch && <p className="mt-1 text-xs text-inkMuted">OSRM estimated detour: {(selectedRide.routeMatch.detourSeconds / 60).toFixed(1)} min · Combined endpoint map distance from route: {selectedRide.routeMatch.routeDeviationMeters} m</p>}
-        {selectedRide.instructions && <p className="mt-2 text-xs text-inkMuted">Driver instructions: {selectedRide.instructions}</p>}
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-end gap-3">
-          <label className="text-xs text-inkMuted">Seats
-            <input type="number" min="1" max={selectedRide.seatsAvailable} value={seats} onChange={(event) => setSeats(Math.max(1, Math.min(selectedRide.seatsAvailable, Number(event.target.value) || 1)))} className="block mt-1 w-24 rounded-lg border border-cardBorder bg-white px-3 py-2 text-sm text-ink" />
-          </label>
-          <p className="text-sm text-ink">Fare review: <strong>{formatPaise(Math.round(selectedRide.fare * 100))} × {seats} = {formatPaise(selectedTotalFarePaise)}</strong><span className="block text-xs text-inkMuted">Pay offline with the driver. Payment is not collected or verified here.</span></p>
-          <button disabled={booking || selectedRideIsOwn || selectedRide.seatsAvailable < 1} onClick={bookSelectedRide} className="sm:ml-auto rounded-lg bg-rose px-4 py-2.5 text-sm font-medium text-plumText disabled:opacity-60">{booking ? "Confirming..." : "Confirm booking"}</button>
-        </div>
-      </section>}
-      {selectedRide && <div className="mt-5 h-72 overflow-hidden rounded-xl"><RealMap city={user?.serviceCity} pickupLocation={mapLocation(selectedRide.pickup)} destinationLocation={mapLocation(selectedRide.destination)} /></div>}
     </div>
   );
 }

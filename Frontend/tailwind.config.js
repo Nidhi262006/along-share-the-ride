@@ -39,6 +39,7 @@ export default {
       fontFamily: {
         heading: ["Sora", "sans-serif"],
         body: ["Inter", "sans-serif"],
+        display: ["Fraunces", "Georgia", "serif"],
       },
       borderRadius: {
         card: "14px",

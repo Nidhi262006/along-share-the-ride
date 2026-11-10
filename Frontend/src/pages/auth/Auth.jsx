@@ -18,7 +18,7 @@ export default function Auth() {
     setPending(true);
     try {
       const authenticatedUser = await authenticate(mode, form);
-      navigate(authenticatedUser.role === "admin" ? "/admin" : "/choose-role");
+      navigate(authenticatedUser.role === "admin" ? "/admin" : authenticatedUser.role === "driver" ? "/driver" : "/passenger");
     } catch (requestError) {
       setError(requestError.message);
     } finally {

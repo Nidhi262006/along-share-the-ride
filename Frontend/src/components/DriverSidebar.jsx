@@ -14,7 +14,6 @@ import {
   UserRound,
   ClipboardList,
   ShieldCheck,
-  Repeat2,
 } from "lucide-react";
 
 const navItems = [
@@ -28,7 +27,6 @@ const navItems = [
   { to: "/driver/verification", label: "Get Verified", icon: ShieldCheck },
   { to: "/driver/profile", label: "Profile", icon: UserRound },
   { to: "/driver/settings", label: "Settings", icon: Settings },
-  { to: "/choose-role", label: "Switch mode", icon: Repeat2 },
 ];
 
 export default function DriverSidebar() {

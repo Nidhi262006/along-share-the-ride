@@ -13,7 +13,6 @@ import {
   User,
   Settings,
   Route,
-  Repeat2,
 } from "lucide-react";
 
 const navItems = [
@@ -26,7 +25,6 @@ const navItems = [
   { to: "/safety", label: "Safety", icon: LifeBuoy },
   { to: "/profile", label: "Profile", icon: User },
   { to: "/settings", label: "Settings", icon: Settings },
-  { to: "/choose-role", label: "Switch mode", icon: Repeat2 },
 ];
 
 export default function Sidebar() {

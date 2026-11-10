@@ -1,8 +1,7 @@
 import { Routes, Route, useLocation, Navigate } from "react-router-dom";
-import Sidebar from "./components/Sidebar.jsx";
-import DriverSidebar from "./components/DriverSidebar.jsx";
-import AdminSidebar from "./components/AdminSidebar.jsx";
 import SosButton from "./components/SosButton.jsx";
+import AppHeader from "./components/dashboard/AppHeader.jsx";
+import AppFooter from "./components/dashboard/AppFooter.jsx";
 import Home from "./pages/Home.jsx";
 import FindRide from "./pages/FindRide.jsx";
 import MyRides from "./pages/MyRides.jsx";
@@ -13,7 +12,6 @@ import Profile from "./pages/Profile.jsx";
 import Settings from "./pages/Settings.jsx";
 import Safety from "./pages/Safety.jsx";
 import Auth from "./pages/auth/Auth.jsx";
-import ChooseRole from "./pages/auth/ChooseRole.jsx";
 import DriverDashboard from "./pages/driver/DriverDashboard.jsx";
 import { DriverRides, RideRequests, Passengers, Earnings, DriverProfile } from "./pages/driver/DriverPages.jsx";
 import DriverMessages from "./pages/driver/DriverMessages.jsx";
@@ -22,15 +20,21 @@ import PostRide from "./pages/driver/PostRide.jsx";
 import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 
+function dashboardPath(user) {
+  if (user?.role === "admin") return "/admin";
+  if (user?.role === "driver") return "/driver";
+  return "/passenger";
+}
+
 function RequireAuth({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div className="min-h-screen bg-cream" aria-busy="true" />;
+  if (loading) return <div className="min-h-screen bg-white" aria-busy="true" />;
   return user ? children : <Navigate to="/auth" replace />;
 }
 
 function RequireRole({ role, children }) {
   const { user } = useAuth();
-  if (user?.role !== role || !user?.serviceCity) return <Navigate to="/choose-role" replace />;
+  if (user?.role !== role) return <Navigate to={dashboardPath(user)} replace />;
   return children;
 }
 
@@ -39,30 +43,31 @@ function RequireAdmin({ children }) {
   return user?.role === "admin" ? children : <Navigate to="/auth" replace />;
 }
 
+function EntryRedirect() {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="min-h-screen bg-white" aria-busy="true" />;
+  return <Navigate to={user ? dashboardPath(user) : "/auth"} replace />;
+}
+
 function Layout({ children }) {
   const location = useLocation();
-  const authScreen = location.pathname === "/auth" || location.pathname === "/choose-role";
+  if (location.pathname === "/auth") return children;
   const driver = location.pathname.startsWith("/driver");
   const admin = location.pathname.startsWith("/admin");
-  if (authScreen) return children;
- return (
-  <div className="min-h-screen flex flex-col bg-[#f3f3ef] overflow-x-hidden md:flex-row">
-    {admin ? <AdminSidebar /> : driver ? <DriverSidebar /> : <Sidebar />}
-
-    <main className="min-h-[calc(100vh-4rem)] min-w-0 flex-1 overflow-y-auto md:min-h-screen">
-      {children}
-    </main>
-
-    {!driver && !admin && <SosButton />}
-  </div>
-);
+  return (
+    <div className="flex min-h-screen flex-col bg-white text-[#241c33]">
+      <AppHeader />
+      <main className="min-w-0 flex-1">{children}</main>
+      <AppFooter />
+      {!driver && !admin && <SosButton />}
+    </div>
+  );
 }
 
 export default function App() {
   return <Layout><Routes>
-    <Route path="/" element={<Navigate to="/auth" replace />} />
+    <Route path="/" element={<EntryRedirect />} />
     <Route path="/auth" element={<Auth />} />
-    <Route path="/choose-role" element={<RequireAuth><ChooseRole /></RequireAuth>} />
     <Route path="/admin/*" element={<RequireAuth><RequireAdmin><AdminDashboard /></RequireAdmin></RequireAuth>} />
 
     <Route path="/passenger" element={<RequireAuth><RequireRole role="passenger"><Home /></RequireRole></RequireAuth>} />
@@ -88,6 +93,6 @@ export default function App() {
     <Route path="/driver/profile" element={<RequireAuth><RequireRole role="driver"><DriverProfile /></RequireRole></RequireAuth>} />
     <Route path="/driver/settings" element={<RequireAuth><RequireRole role="driver"><Settings /></RequireRole></RequireAuth>} />
 
-    <Route path="*" element={<Navigate to="/auth" replace />} />
+    <Route path="*" element={<EntryRedirect />} />
   </Routes></Layout>;
 }
